@@ -38,7 +38,13 @@ class Email(Field):
         if "@" not in value or "." not in value:
             raise ValueError("Invalid email address.")
         super().__init__(value)
-
+#------ADDRESS CLASS------#
+'''Клас Address для зберігання адреси контакту'''
+class Address(Field):
+    def __init__(self, value):
+        if not value.strip():
+            raise ValueError("Address cannot be empty.")
+        super().__init__(value.strip())
 #--------------#          
 '''Клас для зберігання інформації про контакт, включаючи ім'я та список телефонів.'''
 class Record:
@@ -47,6 +53,7 @@ class Record:
         self.phones = []
         self.birthday = None
         self.email = None
+        self.address = None
 
     def add_phone(self, phone_number):
         self.phones.append(Phone(phone_number))
@@ -75,11 +82,15 @@ class Record:
     #-------add email--------#
     def add_email(self, email_str):
         self.email = Email(email_str)
+    #-------add address--------#
+    def add_address(self, address_str):
+        self.address = Address(address_str)
     def __str__(self):
         phones_str = '; '.join(p.value for p in self.phones)
         bday_str = f", birthday: {self.birthday}" if self.birthday else ""
         email_str = f", email: {self.email}" if self.email else ""
-        return f"Contact name: {self.name.value}, phones: {phones_str}{bday_str}{email_str}"
+        address_str = f", address: {self.address}" if self.address else ""
+        return f"Contact name: {self.name.value}, phones: {phones_str}{bday_str}{email_str}{address_str}"
  #--------------#   
 '''Клас для зберігання та управління записами'''
 class AddressBook(UserDict):
@@ -219,6 +230,17 @@ def add_email(args, book):
         return "Email added."
     else:
         raise KeyError
+'''Show Email'''
+@input_error
+def show_email(args, book):
+    name = args[0]
+    record = book.find(name)
+    if record and record.email:
+        return f"{name}'s email is {record.email}"
+    elif record:
+        return f"{name} has no email set."
+    else:
+        raise KeyError
 '''Remove PhoneNumber'''
 @input_error
 def remove_phone(args, book):
@@ -239,7 +261,29 @@ def add_phone(args, book):
         return "Phone added."
     else:
         raise KeyError
-
+#------ADDRESS FUNCTIONS------#
+'''Add Address'''
+@input_error
+def add_address(args, book):
+    name = args[0]
+    address = ' '.join(args[1:])  # Об'єднуємо всі аргументи після імені в адресу
+    record = book.find(name)
+    if record:
+        record.add_address(address)
+        return "Address added."
+    else:
+        raise KeyError
+'''Show Address'''
+@input_error
+def show_address(args, book):
+    name = args[0]
+    record = book.find(name)
+    if record and record.address:
+        return f"{name}'s address is {record.address}"
+    elif record:
+        return f"{name} has no address set."
+    else:
+        raise KeyError
 
 #---------------#
 '''Menu'''
@@ -260,6 +304,9 @@ def print_available_commands():
     print("  add-phone <name> <phone>     - Add phone to existing contact")
     print("  remove-phone <name> <phone>  - Remove phone from contact")
     print("  add-email <name> <email>     - Add email to contact")
+    print("  show-email <name>            - Show email of contact")
+    print("  add-address <name> <address> - Add address to contact")
+    print("  show-address <name>          - Show address of contact")
     
 
 #---------------#
@@ -335,6 +382,14 @@ def main():
             print(add_phone(args, book))
         elif command == "add-email":
             print(add_email(args, book))
+        elif command == "add-email":
+            print(add_email(args, book))
+        elif command == "show-email":
+            print(show_email(args, book))
+        elif command == "add-address":
+            print(add_address(args, book))
+        elif command == "show-address":
+            print(show_address(args, book))
         else:
             print("Invalid command. Please select correct one of ")
             print_available_commands()
