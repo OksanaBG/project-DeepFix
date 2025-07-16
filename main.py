@@ -364,6 +364,74 @@ def show_notes(args, notebook):
     for note_id, note in notebook.get_all_notes():
         result.append(f"{note_id}: {note}")
     return '\n'.join(result)
+'''Search by Tag Notes'''
+@input_error
+def find_tag(args, notebook):
+    if not args:
+        raise ValueError("Please provide a tag to search.")
+
+    keyword = args[0]
+    results = notebook.find_by_tag(keyword)
+
+    if not results:
+        return f"No notes found with tag containing '{keyword}'."
+
+    return '\n'.join([str(note) for note in results])
+@input_error
+def find_note(args, notebook):
+    if not args:
+        raise ValueError("Please provide a keyword to search in note text.")
+    
+    keyword = args[0]
+    results = notebook.search_text(keyword)
+
+    if not results:
+        return f"No notes found containing '{keyword}'."
+
+    return '\n'.join([str(note) for note in results])
+@input_error
+def edit_note_command(args, notebook):
+    if len(args) < 2:
+        raise ValueError("Usage: edit-note <note_id> <new_text>")
+    
+    note_id = args[0]
+    new_text = ' '.join(args[1:])  # дозволяємо багатослівний текст
+
+    if note_id in notebook.data:
+        notebook.edit_note(note_id, new_text)
+        return f"Note {note_id} updated."
+    else:
+        return "Note ID not found."
+@input_error
+def add_tag_command(args, notebook):
+    if len(args) < 2:
+        raise ValueError("Usage: add-tag <note_id> <tag>")
+
+    note_id = args[0]
+    tag = args[1]
+
+    if note_id in notebook.data:
+        notebook.data[note_id].add_tag(tag)
+        return f"Tag '{tag}' added to note {note_id}."
+    else:
+        return "Note ID not found."
+@input_error
+def delete_tag_command(args, notebook):
+    if len(args) < 2:
+        raise ValueError("Usage: delete-tag <note_id> <tag>")
+
+    note_id = args[0]
+    tag = args[1]
+
+    if note_id in notebook.data:
+        note = notebook.data[note_id]
+        if tag in note.tags:
+            note.remove_tag(tag)
+            return f"Tag '{tag}' removed from note {note_id}."
+        else:
+            return f"Tag '{tag}' not found in note {note_id}."
+    else:
+        return "Note ID not found."
 #---------------#
 '''Menu'''
 def print_available_commands():
@@ -390,6 +458,11 @@ def print_available_commands():
     print("  add-note <text> [tags...]     - Add a note with optional tags")
     print("  delete-note <note_id>         - Delete a note by its ID")
     print("  show-notes                    - Show all notes")
+    print("  find-tag <tag>                - Find notes by tag (partial match)")
+    print("  find-note <text>              - Find notes by text content")
+    print("  edit-note <id> <new text>     - Edit text of an existing note")
+    print("  add-tag <id> <tag>             - Add a tag to a note")
+    print("  delete-tag <id> <tag>         - Remove a tag from a note")
     
 
 #---------------#
@@ -494,6 +567,16 @@ def main():
             print(delete_note(args, notebook))
         elif command == "show-notes":
             print(show_notes(args, notebook))
+        elif command == "find-tag":
+            print(find_tag(args, notebook))
+        elif command == "find-note":
+            print(find_note(args, notebook))
+        elif command == "edit-note":
+            print(edit_note_command(args, notebook))
+        elif command == "add-tag":
+            print(add_tag_command(args, notebook))
+        elif command == "delete-tag":
+            print(delete_tag_command(args, notebook))
         else:
             print("Invalid command. Please select correct one of ")
             print_available_commands()
