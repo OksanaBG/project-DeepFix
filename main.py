@@ -480,6 +480,11 @@ def save_data(obj, filename):
 #    with open(filename, "wb") as f:
 #        pickle.dump(book, f)
 
+        pickle.dump(obj, f)
+#def save_data(book, filename="addressbook.pkl"):
+#    with open(filename, "wb") as f:
+#        pickle.dump(book, f)
+
 #---------------#
 '''Десеріалізація з pickle'''
 def load_data(filename, default_factory):
