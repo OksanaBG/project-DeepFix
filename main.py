@@ -127,7 +127,55 @@ class AddressBook(UserDict):
                     })
 
         return upcoming_birthdays
+#--15/07/2025----------------------------------------------#
+'''Клас Note- нотаток із текстом і тегом. Тегі можуть бути пусті'''
+class Note:
+    def __init__(self, text, tags=None):
+        self.text = text
+        self.tags = tags if tags else []
+        self.created = datetime.now()
+    '''edit note'''        
+    def edit(self, new_text):
+        self.text = new_text
+
+    '''add tag to note'''
+    def add_tag(self, tag):
+        if tag not in self.tags:
+            self.tags.append(tag)
     
+    '''delete tag'''
+    def remove_tag(self, tag):
+        if tag in self.tags:
+            self.tags.remove(tag)
+    
+    def __str__(self):
+        tag_str = f" [tags: {', '.join(self.tags)}]" if self.tags else ""
+        return f"{self.text}{tag_str} (Created: {self.created.strftime('%Y-%m-%d %H:%M')})"
+    
+'''Клас Notebook- для зберігання та управління нотатками'''
+class Notebook(UserDict):
+    '''add note  with uniq_id as %Y%m%d%H%M%S (date and time creating)'''
+    def add_note(self, note):
+        self.data[note.created.strftime("%Y%m%d%H%M%S")] = note
+
+    def delete_note(self, note_id):
+        if note_id in self.data:
+            del self.data[note_id]
+    '''search tag as any - not district'''
+    def find_by_tag(self, keyword):
+        return [note for note in self.data.values()
+            if any(keyword.lower() in tag.lower() for tag in note.tags)]
+
+    def search_text(self, keyword):
+        return [note for note in self.data.values() if keyword.lower() in note.text.lower()]
+
+    def edit_note(self, note_id, new_text):
+        if note_id in self.data:
+            self.data[note_id].edit(new_text)
+
+    def get_all_notes(self):
+        return list(self.data.items())
+# ---------------------------------------------------------#        
 '''Errors decorator'''   
 def input_error(func):
     def wrapper(*args, **kwargs):
@@ -284,7 +332,38 @@ def show_address(args, book):
         return f"{name} has no address set."
     else:
         raise KeyError
+#------Notes-----------------------------------------#
+'''Add Notes'''
+@input_error
+def add_note(args, notebook):
+    if not args:
+        raise ValueError("Please provide a note text.")
+    
+    text = args[0]
+    tags = args[1:]  # необов’язкові теги
 
+    note = Note(text, tags)
+    notebook.add_note(note)
+    return "Note added."
+'''Delete Notes'''
+@input_error
+def delete_note(args, notebook):
+    note_id = args[0]
+    if note_id in notebook.data:
+        notebook.delete_note(note_id)
+        return f"Note {note_id} deleted."
+    else:
+        return "Note ID not found."
+'''Show Notes'''
+@input_error
+def show_notes(args, notebook):
+    if not notebook.data:
+        return "No notes found."
+    
+    result = []
+    for note_id, note in notebook.get_all_notes():
+        result.append(f"{note_id}: {note}")
+    return '\n'.join(result)
 #---------------#
 '''Menu'''
 def print_available_commands():
@@ -307,6 +386,10 @@ def print_available_commands():
     print("  show-email <name>            - Show email of contact")
     print("  add-address <name> <address> - Add address to contact")
     print("  show-address <name>          - Show address of contact")
+    '''Notes'''
+    print("  add-note <text> [tags...]     - Add a note with optional tags")
+    print("  delete-note <note_id>         - Delete a note by its ID")
+    print("  show-notes                    - Show all notes")
     
 
 #---------------#
@@ -316,25 +399,39 @@ def parse_input(user_input):
     return cmd.lower(), args
 
 #---------------#
-'''Серіалізація з pickle'''  
-def save_data(book, filename="addressbook.pkl"):
+'''Серіалізація з pickle'''
+def save_data(obj, filename):
     with open(filename, "wb") as f:
-        pickle.dump(book, f)
+        pickle.dump(obj, f)
+#def save_data(book, filename="addressbook.pkl"):
+#    with open(filename, "wb") as f:
+#        pickle.dump(book, f)
+
 #---------------#
 '''Десеріалізація з pickle'''
-def load_data(filename="addressbook.pkl"):
+def load_data(filename, default_factory):
     try:
         with open(filename, "rb") as f:
             return pickle.load(f)
     except FileNotFoundError:
-        print("Starting new address book...") 
-        return AddressBook()
+        print(f"No file found: {filename}. Creating new empty object...")
+        return default_factory()
+#def load_data(filename="addressbook.pkl"):
+#    try:
+#        with open(filename, "rb") as f:
+#            return pickle.load(f)
+#    except FileNotFoundError:
+#        print("Starting new address book...") 
+#        return AddressBook()
+#---------------#
 #---------------#
 '''Main'''
 def main():
     ###book = AddressBook()
     '''Load AddressBook'''
-    book = load_data()
+     # book = load_data()
+    book = load_data("addressbook.pkl", AddressBook)
+    notebook = load_data("notes.pkl", Notebook)
     print("Welcome to the assistant bot!")
     print_available_commands()
 
@@ -390,6 +487,13 @@ def main():
             print(add_address(args, book))
         elif command == "show-address":
             print(show_address(args, book))
+       #-----Notes---------
+        elif command == "add-note":
+            print(add_note(args, notebook))
+        elif command == "delete-note":
+            print(delete_note(args, notebook))
+        elif command == "show-notes":
+            print(show_notes(args, notebook))
         else:
             print("Invalid command. Please select correct one of ")
             print_available_commands()
