@@ -336,15 +336,31 @@ def show_address(args, book):
 '''Add Notes'''
 @input_error
 def add_note(args, notebook):
-    if not args:
-        raise ValueError("Please provide a note text.")
-    
-    text = args[0]
-    tags = args[1:]  # необов’язкові теги
+    print("Please enter your note text:")
+    text = input(">>> ").strip()
+
+    if not text:
+        raise ValueError("Note text cannot be empty.")
+
+    print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
+    raw_tags = input(">>> ").strip()
+
+    # Розділяємо по крапці з комою
+    tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
 
     note = Note(text, tags)
     notebook.add_note(note)
     return "Note added."
+#@input_error
+#def add_note(args, notebook):
+#    if not args:
+#        raise ValueError("Please provide a note text.")
+#    
+#    text = args[0]
+#    tags = args[1:]  # необов’язкові теги
+#    note = Note(text, tags)
+#    notebook.add_note(note)
+#    return "Note added."
 '''Delete Notes'''
 @input_error
 def delete_note(args, notebook):
@@ -530,8 +546,8 @@ def main():
         ''''''
         if command in ["close", "exit"]:
             '''Save AddressBook before exit '''
-            save_data("addressbook.pkl", AddressBook)
-            save_data("notes.pkl", Notebook)
+            save_data(book, "addressbook.pkl")
+            save_data(notebook, "notes.pkl")
             print("Good bye!")
             break
         elif command == "hello":
