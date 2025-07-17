@@ -210,6 +210,18 @@ class Notebook(UserDict):
 
     def get_all_notes(self):
         return list(self.data.items())
+    #----17/05/2025---sort method for notes
+    def get_sorted_notes(self, sort_type="date", reverse=False):
+        if sort_type == "date":
+            key_func = lambda item: item[1].created
+        elif sort_type == "tag-count":
+            key_func = lambda item: len(item[1].tags)
+        elif sort_type == "tag-name":
+            key_func = lambda item: item[1].tags[0].lower() if item[1].tags else ''
+        else:
+            raise ValueError("Unsupported sort type.")
+
+        return sorted(self.data.items(), key=key_func, reverse=reverse)
 # ---------------------------------------------------------#        
 '''Errors decorator'''   
 def input_error(func):
@@ -401,15 +413,31 @@ def show_address(args, book):
 '''Add Notes'''
 @input_error
 def add_note(args, notebook):
-    if not args:
-        raise ValueError("Please provide a note text.")
-    
-    text = args[0]
-    tags = args[1:]  # необов’язкові теги
+    print("Please enter your note text:")
+    text = input(">>> ").strip()
+
+    if not text:
+        raise ValueError("Note text cannot be empty.")
+
+    print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
+    raw_tags = input(">>> ").strip()
+
+    # Розділяємо по крапці з комою
+    tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
 
     note = Note(text, tags)
     notebook.add_note(note)
     return "Note added."
+#@input_error
+#def add_note(args, notebook):
+#    if not args:
+#        raise ValueError("Please provide a note text.")
+#    
+#    text = args[0]
+#    tags = args[1:]  # необов’язкові теги
+#    note = Note(text, tags)
+#    notebook.add_note(note)
+#    return "Note added."
 '''Delete Notes'''
 @input_error
 def delete_note(args, notebook):
@@ -442,6 +470,7 @@ def find_tag(args, notebook):
         return f"No notes found with tag containing '{keyword}'."
 
     return '\n'.join([str(note) for note in results])
+'''Serch Notes'''
 @input_error
 def find_note(args, notebook):
     if not args:
@@ -454,6 +483,7 @@ def find_note(args, notebook):
         return f"No notes found containing '{keyword}'."
 
     return '\n'.join([str(note) for note in results])
+'''Edit Notes'''
 @input_error
 def edit_note_command(args, notebook):
     if len(args) < 2:
@@ -467,6 +497,7 @@ def edit_note_command(args, notebook):
         return f"Note {note_id} updated."
     else:
         return "Note ID not found."
+'''Add Tag to Note'''
 @input_error
 def add_tag_command(args, notebook):
     if len(args) < 2:
@@ -497,6 +528,25 @@ def delete_tag_command(args, notebook):
             return f"Tag '{tag}' not found in note {note_id}."
     else:
         return "Note ID not found."
+
+'''Sort Notes by parametrs:
+    sort-notes                       # за датою створення (від старих до нових)
+    sort-notes date desc             # за датою у зворотному порядку
+    sort-notes tag-count             # за кількістю тегів
+    sort-notes tag-count desc        # за кількістю тегів у зворотному порядку
+    sort-notes tag-name              # за алфавітом першого тегу
+'''
+@input_error
+def sort_notes(args, notebook):
+    sort_type = args[0].lower() if args else "date"
+    reverse = "desc" in args
+
+    sorted_notes = notebook.get_sorted_notes(sort_type=sort_type, reverse=reverse)
+
+    if not sorted_notes:
+        return "No notes found."
+
+    return '\n'.join([f"{note_id}: {note}" for note_id, note in sorted_notes])
 #---------------#
 '''Menu'''
 def print_available_commands():
@@ -529,6 +579,7 @@ def print_available_commands():
     print("  edit-note <id> <new text>     - Edit text of an existing note")
     print("  add-tag <id> <tag>             - Add a tag to a note")
     print("  delete-tag <id> <tag>         - Remove a tag from a note")
+    print("  sort-notes [date|tag-count|tag-name] [desc] - Sort notes by selected method")
     
 
 #---------------#
@@ -545,8 +596,6 @@ def save_data(obj, filename):
 #def save_data(book, filename="addressbook.pkl"):
 #    with open(filename, "wb") as f:
 #        pickle.dump(book, f)
-
-        pickle.dump(obj, f)
 #def save_data(book, filename="addressbook.pkl"):
 #    with open(filename, "wb") as f:
 #        pickle.dump(book, f)
@@ -596,8 +645,8 @@ def main():
         ''''''
         if command in ["close", "exit"]:
             '''Save AddressBook before exit '''
-            save_data(book,"addressbook.pkl")
-            save_data(notebook,"notes.pkl")
+            save_data(book, "addressbook.pkl")
+            save_data(notebook, "notes.pkl")
             print("Good bye!")
             break
         elif command == "hello":
@@ -651,6 +700,8 @@ def main():
             print(add_tag_command(args, notebook))
         elif command == "delete-tag":
             print(delete_tag_command(args, notebook))
+        elif command == "sort-notes":
+            print(sort_notes(args, notebook))
         else:
             print("Invalid command. Please select correct one of ")
             print_available_commands()
