@@ -596,8 +596,8 @@ def main():
         ''''''
         if command in ["close", "exit"]:
             '''Save AddressBook before exit '''
-            save_data("addressbook.pkl", AddressBook)
-            save_data("notes.pkl", Notebook)
+            save_data(book,"addressbook.pkl")
+            save_data(notebook,"notes.pkl")
             print("Good bye!")
             break
         elif command == "hello":
