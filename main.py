@@ -175,6 +175,7 @@ class Notebook(UserDict):
 
     def get_all_notes(self):
         return list(self.data.items())
+    #----17/05/2025---sort method
 # ---------------------------------------------------------#        
 '''Errors decorator'''   
 def input_error(func):
