@@ -1,7 +1,8 @@
 import pickle
-from colorama import Fore, Style
-import pandas as pd
-from tabulate import tabulate
+import difflib             #for correct command
+from colorama import Fore, Style, init  #for color text
+import pandas as pd        #for make table
+from tabulate import tabulate       #for center table
 from collections import UserDict
 from datetime import datetime, timedelta
  #--------------#   
@@ -187,7 +188,7 @@ def input_error(func):
         except KeyError:
             return f"{Fore.RED}Contact not found.{Style.RESET_ALL}"
         except ValueError as e:
-            return str(e)
+            return Fore.RED + str(e) + Style.RESET_ALL
         except IndexError:
             return f"{Fore.RED}Not enough parameters.{Style.RESET_ALL}"
        # except EmptyLine:
@@ -450,36 +451,60 @@ def delete_tag_command(args, notebook):
             return f"Tag '{tag}' not found in note {note_id}."
     else:
         return "Note ID not found."
+
+
+#---------------#
+'''Corrective Command'''
+
+valide_comands =["close", "exit", "hello", "add", "change", "phone", "all", "add-birthday",
+                    "show-birthday", "birthdays", "show", "remove-phone", "add-phone", "add-email",
+                    "show-email", "add-address", "show-address", "add-note", "delete-note", "show-notes",
+                    "find-tag", "find-note", "edit-note", "add-tag", "delete-tag"]
+
+def corective_command(command, valide_comands, args):
+    closest_matches = difflib.get_close_matches(command, valide_comands, n=2, cutoff=0.6)
+    if closest_matches:
+        return (f"{Fore.YELLOW}Did you mean: {', '.join(closest_matches)}?{Style.RESET_ALL}")
+        # Match = ' '.join([closest_matches[0]] + args[:])
+        # confirm = input(f"Did you mean {Match}? Y/N: ").strip().lower()
+        # if confirm.lower() == 'y':
+        #     global user_input
+        #     user_input = Match 
+        #     return user_input
+        # else:
+        #     return "Command not recognized. Please try again."
+    return "Command not found"
+
 #---------------#
 '''Menu'''
 def print_available_commands():
     print(Fore.YELLOW + """
     Available commands:
           
-      hello                             - Greet the bot")
-      add <name> <phone>                - Add a new contact")
-      change <name> <new phone>         - Change existing contact's phone")
-      phone <name>                      - Show the phone number of a contact")
-      all                               - Show all contacts")
-      show                              - Show all commands")
-      add-birthday <name> <DD.MM.YYYY>  - Add BD to Contact")
-      show-birthday <name>              - Show BD of Contact")
-      show                              - Show all commands")
-      close / exit                      - Exit the bot") 
-      add-phone <name> <phone>          - Add phone to existing contact")
-      remove-phone <name> <phone>       - Remove phone from contact")
-      add-email <name> <email>          - Add email to contact")
-      show-email <name>                 - Show email of contact")
-      add-address <name> <address>      - Add address to contact")
-      show-address <name>               - Show address of contact")
-      add-note <text> [tags...]         - Add a note with optional tags")
-      delete-note <note_id>             - Delete a note by its ID")
-      show-notes                        - Show all notes")
-      find-tag <tag>                    - Find notes by tag (partial match)")
-      find-note <text>                  - Find notes by text content")
-      edit-note <id> <new text>         - Edit text of an existing note")
-      add-tag <id> <tag>                - Add a tag to a note")
-      delete-tag <id> <tag>             - Remove a tag from a note")
+      hello                             - Greet the bot
+      add <name> <phone>                - Add a new contact
+      change <name> <new phone>         - Change existing contact's phone
+      phone <name>                      - Show the phone number of a contact
+      all                               - Show all contacts
+      show                              - Show all commands
+      add-birthday <name> <DD.MM.YYYY>  - Add BD to Contact
+      show-birthday <name>              - Show BD of Contact
+      show                              - Show all commands
+      close / exit                      - Exit the bot
+      add-phone <name> <phone>          - Add phone to existing contact
+      remove-phone <name> <phone>       - Remove phone from contact
+      add-email <name> <email>          - Add email to contact
+      show-email <name>                 - Show email of contact
+      add-address <name> <address>      - Add address to contact
+      show-address <name>               - Show address of contact
+      add-note <text> [tags...]         - Add a note with optional tags
+      delete-note <note_id>             - Delete a note by its ID
+      show-notes                        - Show all notes
+      find-tag <tag>                    - Find notes by tag (partial match)
+      find-note <text>                  - Find notes by text content
+      edit-note <id> <new text>         - Edit text of an existing note
+      add-tag <id> <tag>                - Add a tag to a note
+      delete-tag <id> <tag>             - Remove a tag from a note
     """ + Style.RESET_ALL)
     
 
@@ -534,7 +559,10 @@ def main():
     while True:
         # user_input = input("Enter a command: ")
         # command, args = parse_input(user_input)
-        user_input = input("Enter a command: ").strip()
+        # init(autoreset=True)
+        global user_input
+        user_input = input(f"Enter a command: ").strip()
+
         #---------------#
         '''Command Valodator'''
         if not user_input:
@@ -545,11 +573,12 @@ def main():
         except ValueError:
             print_available_commands()
             continue
+            
         ''''''
         if command in ["close", "exit"]:
             '''Save AddressBook before exit '''
-            save_data("addressbook.pkl", AddressBook)
-            save_data("notes.pkl", Notebook)
+            save_data(book, "addressbook.pkl")
+            save_data(notebook, "notes.pkl" )
             print("Good bye!")
             break
         elif command == "hello":
@@ -602,8 +631,11 @@ def main():
         elif command == "delete-tag":
             print(delete_tag_command(args, notebook))
         else:
-            print("Invalid command. Please select correct one of ")
-            print_available_commands()
+            try:
+                print(corective_command(command, valide_comands, args))
+            except ValueError:
+                print(f"{Fore.RED}Invalid command. Please select correct one of{Style.RESET_ALL}")
+                print_available_commands()
    
 
 
