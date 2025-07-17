@@ -1,4 +1,5 @@
 import pickle
+import re
 from collections import UserDict
 from datetime import datetime, timedelta
  #--------------#   
@@ -24,13 +25,29 @@ class Birthday(Field):
 
     def __str__(self):
         return self.value.strftime("%d.%m.%Y")
- #--------------#   
-'''Клас для зберігання номера телефону. Має валідацію формату (10 цифр).'''
+
+#--------------#   
+'''Клас для зберігання номера телефону з покращеною валідацією'''
 class Phone(Field):
     def __init__(self, value):
-        if not value.isdigit() or len(value) != 10:
-            raise ValueError("Phone number must be 10 digits.")
-        super().__init__(value)
+        # Очищаємо номер від спеціальних символів
+        cleaned = re.sub(r'[^\d+]', '', value)
+        
+        # Перевіряємо різні формати
+        if cleaned.startswith('+380') and len(cleaned) == 13:
+            self.value = cleaned
+        elif cleaned.startswith('380') and len(cleaned) == 12:
+            self.value = '+' + cleaned
+        elif cleaned.startswith('0') and len(cleaned) == 10:
+            self.value = '+38' + cleaned
+        elif len(cleaned) == 10 and cleaned.isdigit():
+            self.value = '+380' + cleaned
+        else:
+            raise ValueError("Invalid phone format. Use +380XXXXXXXXX, 380XXXXXXXXX, 0XXXXXXXXX, or XXXXXXXXXX")
+
+    def __str__(self):
+        return self.value
+
 #--------------#    
 '''Клас Email з валідацією рядка - умова у рядку є @ та .''' 
 class Email(Field):
