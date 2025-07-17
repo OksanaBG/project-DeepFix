@@ -1,4 +1,7 @@
 import pickle
+from colorama import Fore, Style
+import pandas as pd
+from tabulate import tabulate
 from collections import UserDict
 from datetime import datetime, timedelta
  #--------------#   
@@ -182,11 +185,11 @@ def input_error(func):
         try:
             return func(*args, **kwargs)
         except KeyError:
-            return "Contact not found."
+            return f"{Fore.RED}Contact not found.{Style.RESET_ALL}"
         except ValueError as e:
             return str(e)
         except IndexError:
-            return "Not enough parameters."
+            return f"{Fore.RED}Not enough parameters.{Style.RESET_ALL}"
        # except EmptyLine:
     return wrapper
 #---------------#
@@ -229,10 +232,25 @@ def show_phone(args, book):
 #---------------#
 '''Show all contacts'''
 @input_error
-def show_all(args, book):
+def show_all(book):
+    res = pd.DataFrame()
+    for record in book.data.values():
+        phones = "\n".join(p.value for p in record.phones)
+        birthday = str(record.birthday) if record.birthday else "No birthday"
+        email = str(record.email) if record.email else "No email"
+        address = str(record.address) if record.address else "No address"
+        
+        res = res._append({
+            "Name": record.name.value,
+            "Phones": phones,
+            "Birthday": birthday,
+            "Email": email,
+            "Address": address
+        }, ignore_index=True)
     if not book.data:
         return "No contacts found."
-    return '\n'.join(str(record) for record in book.data.values())
+    return (Fore.GREEN + tabulate(res, headers="keys", tablefmt="grid", showindex=False, colalign=("center", "center", "center", "center", "center")) + Style.RESET_ALL)
+    #return '\n'.join(str(record) for record in book.data.values())
 
 #---------------#
 '''Add BD to Contact'''
@@ -359,7 +377,7 @@ def delete_note(args, notebook):
 def show_notes(args, notebook):
     if not notebook.data:
         return "No notes found."
-    
+
     result = []
     for note_id, note in notebook.get_all_notes():
         result.append(f"{note_id}: {note}")
@@ -435,34 +453,34 @@ def delete_tag_command(args, notebook):
 #---------------#
 '''Menu'''
 def print_available_commands():
-    print("Available commands:")
-    print("  hello                        - Greet the bot")
-    print("  add <name> <phone>           - Add a new contact")
-    print("  change <name> <new phone>    - Change existing contact's phone")
-    print("  phone <name>                 - Show the phone number of a contact")
-    print("  all                          - Show all contacts")
-    print("  show                         - Show all commands")
-    ''''''
-    print("  add-birthday <name> <DD.MM.YYYY>         - Add BD to Contact")
-    print("  show-birthday <name>         - Show BD of Contact")
-    print("  show                         - Show all commands")
-    print("  close / exit                 - Exit the bot") 
-    ''''''
-    print("  add-phone <name> <phone>     - Add phone to existing contact")
-    print("  remove-phone <name> <phone>  - Remove phone from contact")
-    print("  add-email <name> <email>     - Add email to contact")
-    print("  show-email <name>            - Show email of contact")
-    print("  add-address <name> <address> - Add address to contact")
-    print("  show-address <name>          - Show address of contact")
-    '''Notes'''
-    print("  add-note <text> [tags...]     - Add a note with optional tags")
-    print("  delete-note <note_id>         - Delete a note by its ID")
-    print("  show-notes                    - Show all notes")
-    print("  find-tag <tag>                - Find notes by tag (partial match)")
-    print("  find-note <text>              - Find notes by text content")
-    print("  edit-note <id> <new text>     - Edit text of an existing note")
-    print("  add-tag <id> <tag>             - Add a tag to a note")
-    print("  delete-tag <id> <tag>         - Remove a tag from a note")
+    print(Fore.YELLOW + """
+    Available commands:
+          
+      hello                             - Greet the bot")
+      add <name> <phone>                - Add a new contact")
+      change <name> <new phone>         - Change existing contact's phone")
+      phone <name>                      - Show the phone number of a contact")
+      all                               - Show all contacts")
+      show                              - Show all commands")
+      add-birthday <name> <DD.MM.YYYY>  - Add BD to Contact")
+      show-birthday <name>              - Show BD of Contact")
+      show                              - Show all commands")
+      close / exit                      - Exit the bot") 
+      add-phone <name> <phone>          - Add phone to existing contact")
+      remove-phone <name> <phone>       - Remove phone from contact")
+      add-email <name> <email>          - Add email to contact")
+      show-email <name>                 - Show email of contact")
+      add-address <name> <address>      - Add address to contact")
+      show-address <name>               - Show address of contact")
+      add-note <text> [tags...]         - Add a note with optional tags")
+      delete-note <note_id>             - Delete a note by its ID")
+      show-notes                        - Show all notes")
+      find-tag <tag>                    - Find notes by tag (partial match)")
+      find-note <text>                  - Find notes by text content")
+      edit-note <id> <new text>         - Edit text of an existing note")
+      add-tag <id> <tag>                - Add a tag to a note")
+      delete-tag <id> <tag>             - Remove a tag from a note")
+    """ + Style.RESET_ALL)
     
 
 #---------------#
@@ -543,7 +561,7 @@ def main():
         elif command == "phone":
             print(show_phone(args, book))
         elif command == "all":
-            print(show_all(args, book))
+            print(show_all(book))
         elif command == "add-birthday":
             print(add_birthday(args, book))
         elif command == "show-birthday":
