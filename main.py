@@ -127,6 +127,41 @@ class AddressBook(UserDict):
                     })
 
         return upcoming_birthdays
+    
+    def get_birthdays_in_days(self, days):
+        '''Отримати список днів народження через задану кількість днів'''
+        birthdays_in_period = []
+        today = datetime.today().date()
+        target_date = today + timedelta(days=days)
+
+        for record in self.data.values():
+            if record.birthday:
+                bday = record.birthday.value.replace(year=today.year)
+                if bday < today:
+                    bday = bday.replace(year=today.year + 1)
+
+                if today <= bday <= target_date:
+                    # Розрахунок дати привітання з урахуванням вихідних
+                    congratulation_date = bday
+                    if bday.weekday() == 5:  # Saturday
+                        congratulation_date += timedelta(days=2)
+                    elif bday.weekday() == 6:  # Sunday
+                        congratulation_date += timedelta(days=1)
+
+                    # Розрахунок кількості днів до дня народження
+                    days_until = (bday - today).days
+                    
+                    birthdays_in_period.append({
+                        "name": record.name.value,
+                        "birthday": bday.strftime("%d.%m.%Y"),
+                        "congratulation_date": congratulation_date.strftime("%d.%m.%Y"),
+                        "days_until": days_until
+                    })
+
+        # Сортуємо за кількістю днів до дня народження
+        birthdays_in_period.sort(key=lambda x: x['days_until'])
+        return birthdays_in_period
+    
 #--15/07/2025----------------------------------------------#
 '''Клас Note- нотаток із текстом і тегом. Тегі можуть бути пусті'''
 class Note:
@@ -279,6 +314,36 @@ def birthdays(args, book):
     if not bdays:
         return "No upcoming birthdays."
     return '\n'.join([f"{b['name']} - {b['congratulation_date']}" for b in bdays])
+
+#---------------#
+'''Birthdays in specified days'''
+@input_error
+def birthdays_in_days(args, book):
+    if not args:
+        raise ValueError("Please provide the number of days.")
+    
+    try:
+        days = int(args[0])
+        if days < 0:
+            raise ValueError("Number of days cannot be negative.")
+    except ValueError:
+        raise ValueError("Please provide a valid number of days.")
+    
+    bdays = book.get_birthdays_in_days(days)
+    if not bdays:
+        return f"No birthdays in the next {days} days."
+    
+    result = [f"Birthdays in the next {days} days:"]
+    for b in bdays:
+        if b['days_until'] == 0:
+            result.append(f"{b['name']} - TODAY ({b['birthday']})")
+        elif b['days_until'] == 1:
+            result.append(f"{b['name']} - TOMORROW ({b['birthday']})")
+        else:
+            result.append(f"{b['name']} - in {b['days_until']} days ({b['birthday']})")
+    
+    return '\n'.join(result)
+
 #------15/07/2025---------#
 '''Add Email'''
 @input_error
@@ -495,7 +560,8 @@ def print_available_commands():
     ''''''
     print("  add-birthday <name> <DD.MM.YYYY>         - Add BD to Contact")
     print("  show-birthday <name>         - Show BD of Contact")
-    print("  show                         - Show all commands")
+    print("  birthdays                    - Show upcoming birthdays (next 7 days)")
+    print("  birthdays-in <days>          - Show birthdays in next X days")
     print("  close / exit                 - Exit the bot") 
     ''''''
     print("  add-phone <name> <phone>     - Add phone to existing contact")
@@ -599,6 +665,8 @@ def main():
             print(show_birthday(args, book))
         elif command == "birthdays":
             print(birthdays(args, book))
+        elif command == "birthdays-in":
+            print(birthdays_in_days(args, book))
         elif command == "show":
             print_available_commands()
         elif command == "remove-phone":
