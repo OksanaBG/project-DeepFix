@@ -280,15 +280,31 @@ def change_contact(args, book):
         raise KeyError
     
 #---------------#
-'''Show Phone'''
+'''Show Phone - Serch contact by Name/Phone'''
 @input_error
 def show_phone(args, book):
-    name = args[0]
-    record = book.find(name)
-    if record:
-        return f"{name}: {'; '.join(p.value for p in record.phones)}"
-    else:
-        raise KeyError
+    if not args:
+        raise ValueError("Please provide a search keyword (name or phone).")
+    
+    keyword = args[0].lower()  
+    # рядок результату
+    results = [] 
+
+    for record in book.data.values():
+        # шукаємо у іменах
+        name_match = keyword in record.name.value.lower()
+        # шукаємо в номерах через генеративний вираз
+        phone_match = any(keyword in phone.value for phone in record.phones)
+        #формуємо результат
+        if name_match or phone_match:
+            # номера через ;
+            phones = "; ".join(p.value for p in record.phones)
+            results.append(f"{record.name.value}: {phones}")
+
+    if not results:
+        return "No matching contacts found."
+    # кожне входження з нового рядкаф
+    return '\n'.join(results)
 
 #---------------#
 '''Show all contacts'''
@@ -567,19 +583,21 @@ def sort_notes(args, notebook):
 #---------------#
 '''Menu'''
 def print_available_commands():
-    print("Available commands:")
+    print("Control commands:")
     print("  hello                        - Greet the bot")
+    print("  show                         - Show all commands")
+    print("  close / exit                 - Exit the bot") 
+    ''''''
+    print("Available commands for Addressbook:")    
     print("  add <name> <phone>           - Add a new contact")
     print("  change <name> <new phone>    - Change existing contact's phone")
-    print("  phone <name>                 - Show the phone number of a contact")
-    print("  all                          - Show all contacts")
-    print("  show                         - Show all commands")
+    print("  search                       - Search contact by the phone number or a name")
+    print("  all                          - Show all contacts")    
     ''''''
     print("  add-birthday <name> <DD.MM.YYYY>         - Add BD to Contact")
     print("  show-birthday <name>         - Show BD of Contact")
     print("  birthdays                    - Show upcoming birthdays (next 7 days)")
-    print("  birthdays-in <days>          - Show birthdays in next X days")
-    print("  close / exit                 - Exit the bot") 
+    print("  birthdays-in <days>          - Show birthdays in next X days")    
     ''''''
     print("  add-phone <name> <phone>     - Add phone to existing contact")
     print("  remove-phone <name> <phone>  - Remove phone from contact")
@@ -588,6 +606,7 @@ def print_available_commands():
     print("  add-address <name> <address> - Add address to contact")
     print("  show-address <name>          - Show address of contact")
     '''Notes'''
+    print("Available commands for Notebook:")   
     print("  add-note <text> [tags...]     - Add a note with optional tags")
     print("  delete-note <note_id>         - Delete a note by its ID")
     print("  show-notes                    - Show all notes")
@@ -672,7 +691,7 @@ def main():
             print(add_contact(args, book))
         elif command == "change":
             print(change_contact(args, book))
-        elif command == "phone":
+        elif command == "search":
             print(show_phone(args, book))
         elif command == "all":
             print(show_all(args, book))
