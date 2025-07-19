@@ -3,6 +3,7 @@ import difflib             #for correct command
 from colorama import Fore, Style, init  #for color text
 import pandas as pd        #for make table
 from tabulate import tabulate       #for center table
+import re
 from collections import UserDict
 from datetime import datetime, timedelta
  #--------------#   
@@ -28,8 +29,9 @@ class Birthday(Field):
 
     def __str__(self):
         return self.value.strftime("%d.%m.%Y")
- #--------------#   
-'''Клас для зберігання номера телефону. Має валідацію формату (10 цифр).'''
+
+#--------------#   
+'''Клас для зберігання номера телефону з покращеною валідацією'''
 class Phone(Field):
     def __init__(self, value):
         if not value.isdigit() or len(value) != 10:
@@ -131,6 +133,41 @@ class AddressBook(UserDict):
                     })
 
         return upcoming_birthdays
+    
+    def get_birthdays_in_days(self, days):
+        '''Отримати список днів народження через задану кількість днів'''
+        birthdays_in_period = []
+        today = datetime.today().date()
+        target_date = today + timedelta(days=days)
+
+        for record in self.data.values():
+            if record.birthday:
+                bday = record.birthday.value.replace(year=today.year)
+                if bday < today:
+                    bday = bday.replace(year=today.year + 1)
+
+                if today <= bday <= target_date:
+                    # Розрахунок дати привітання з урахуванням вихідних
+                    congratulation_date = bday
+                    if bday.weekday() == 5:  # Saturday
+                        congratulation_date += timedelta(days=2)
+                    elif bday.weekday() == 6:  # Sunday
+                        congratulation_date += timedelta(days=1)
+
+                    # Розрахунок кількості днів до дня народження
+                    days_until = (bday - today).days
+                    
+                    birthdays_in_period.append({
+                        "name": record.name.value,
+                        "birthday": bday.strftime("%d.%m.%Y"),
+                        "congratulation_date": congratulation_date.strftime("%d.%m.%Y"),
+                        "days_until": days_until
+                    })
+
+        # Сортуємо за кількістю днів до дня народження
+        birthdays_in_period.sort(key=lambda x: x['days_until'])
+        return birthdays_in_period
+    
 #--15/07/2025----------------------------------------------#
 '''Клас Note- нотаток із текстом і тегом. Тегі можуть бути пусті'''
 class Note:
@@ -179,6 +216,18 @@ class Notebook(UserDict):
 
     def get_all_notes(self):
         return list(self.data.items())
+    #----17/05/2025---sort method for notes
+    def get_sorted_notes(self, sort_type="date", reverse=False):
+        if sort_type == "date":
+            key_func = lambda item: item[1].created
+        elif sort_type == "tag-count":
+            key_func = lambda item: len(item[1].tags)
+        elif sort_type == "tag-name":
+            key_func = lambda item: item[1].tags[0].lower() if item[1].tags else ''
+        else:
+            raise ValueError("Unsupported sort type.")
+
+        return sorted(self.data.items(), key=key_func, reverse=reverse)
 # ---------------------------------------------------------#        
 '''Errors decorator'''   
 def input_error(func):
@@ -220,15 +269,31 @@ def change_contact(args, book):
         raise KeyError
     
 #---------------#
-'''Show Phone'''
+'''Show Phone - Serch contact by Name/Phone'''
 @input_error
 def show_phone(args, book):
-    name = args[0]
-    record = book.find(name)
-    if record:
-        return f"{name}: {'; '.join(p.value for p in record.phones)}"
-    else:
-        raise KeyError
+    if not args:
+        raise ValueError("Please provide a search keyword (name or phone).")
+    
+    keyword = args[0].lower()  
+    # рядок результату
+    results = [] 
+
+    for record in book.data.values():
+        # шукаємо у іменах
+        name_match = keyword in record.name.value.lower()
+        # шукаємо в номерах через генеративний вираз
+        phone_match = any(keyword in phone.value for phone in record.phones)
+        #формуємо результат
+        if name_match or phone_match:
+            # номера через ;
+            phones = "; ".join(p.value for p in record.phones)
+            results.append(f"{record.name.value}: {phones}")
+
+    if not results:
+        return "No matching contacts found."
+    # кожне входження з нового рядкаф
+    return '\n'.join(results)
 
 #---------------#
 '''Show all contacts'''
@@ -286,6 +351,36 @@ def birthdays(args, book):
     if not bdays:
         return "No upcoming birthdays."
     return '\n'.join([f"{b['name']} - {b['congratulation_date']}" for b in bdays])
+
+#---------------#
+'''Birthdays in specified days'''
+@input_error
+def birthdays_in_days(args, book):
+    if not args:
+        raise ValueError("Please provide the number of days.")
+    
+    try:
+        days = int(args[0])
+        if days < 0:
+            raise ValueError("Number of days cannot be negative.")
+    except ValueError:
+        raise ValueError("Please provide a valid number of days.")
+    
+    bdays = book.get_birthdays_in_days(days)
+    if not bdays:
+        return f"No birthdays in the next {days} days."
+    
+    result = [f"Birthdays in the next {days} days:"]
+    for b in bdays:
+        if b['days_until'] == 0:
+            result.append(f"{b['name']} - TODAY ({b['birthday']})")
+        elif b['days_until'] == 1:
+            result.append(f"{b['name']} - TOMORROW ({b['birthday']})")
+        else:
+            result.append(f"{b['name']} - in {b['days_until']} days ({b['birthday']})")
+    
+    return '\n'.join(result)
+
 #------15/07/2025---------#
 '''Add Email'''
 @input_error
@@ -396,6 +491,7 @@ def find_tag(args, notebook):
         return f"{Fore.RED}No notes found with tag containing '{Fore.YELLOW, keyword, Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
+'''Serch Notes'''
 @input_error
 def find_note(args, notebook):
     if not args:
@@ -408,6 +504,7 @@ def find_note(args, notebook):
         return f"{Fore.RED}No notes found containing '{Fore.RED, keyword, Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
+'''Edit Notes'''
 @input_error
 def edit_note_command(args, notebook):
     if len(args) < 2:
@@ -524,8 +621,6 @@ def save_data(obj, filename):
 #def save_data(book, filename="addressbook.pkl"):
 #    with open(filename, "wb") as f:
 #        pickle.dump(book, f)
-
-        pickle.dump(obj, f)
 #def save_data(book, filename="addressbook.pkl"):
 #    with open(filename, "wb") as f:
 #        pickle.dump(book, f)
