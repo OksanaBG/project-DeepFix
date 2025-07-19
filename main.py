@@ -1,4 +1,8 @@
 import pickle
+import difflib             #for correct command
+from colorama import Fore, Style, init  #for color text
+import pandas as pd        #for make table
+from tabulate import tabulate       #for center table
 import re
 from collections import UserDict
 from datetime import datetime, timedelta
@@ -21,7 +25,7 @@ class Birthday(Field):
         try:
             self.value = datetime.strptime(value, "%d.%m.%Y").date()
         except ValueError:
-            raise ValueError("Invalid date format. Use DD.MM.YYYY")
+            raise ValueError(f"{Fore.RED}Invalid date format.{Style.RESET_ALL}Use{Fore.YELLOW} <DD.MM.YYYY>{Style.RESET_ALL}")
 
     def __str__(self):
         return self.value.strftime("%d.%m.%Y")
@@ -30,37 +34,22 @@ class Birthday(Field):
 '''Клас для зберігання номера телефону з покращеною валідацією'''
 class Phone(Field):
     def __init__(self, value):
-        # Очищаємо номер від спеціальних символів
-        cleaned = re.sub(r'[^\d+]', '', value)
-        
-        # Перевіряємо різні формати
-        if cleaned.startswith('+380') and len(cleaned) == 13:
-            self.value = cleaned
-        elif cleaned.startswith('380') and len(cleaned) == 12:
-            self.value = '+' + cleaned
-        elif cleaned.startswith('0') and len(cleaned) == 10:
-            self.value = '+38' + cleaned
-        elif len(cleaned) == 10 and cleaned.isdigit():
-            self.value = '+380' + cleaned
-        else:
-            raise ValueError("Invalid phone format. Use +380XXXXXXXXX, 380XXXXXXXXX, 0XXXXXXXXX, or XXXXXXXXXX")
-
-    def __str__(self):
-        return self.value
-
+        if not value.isdigit() or len(value) != 10:
+            raise ValueError(f"{Fore.RED}Phone number must be 10 digits.{Style.RESET_ALL}")
+        super().__init__(value)
 #--------------#    
 '''Клас Email з валідацією рядка - умова у рядку є @ та .''' 
 class Email(Field):
     def __init__(self, value):
         if "@" not in value or "." not in value:
-            raise ValueError("Invalid email address.")
+            raise ValueError(f"{Fore.RED}Invalid email address.{Style.RESET_ALL}")
         super().__init__(value)
 #------ADDRESS CLASS------#
 '''Клас Address для зберігання адреси контакту'''
 class Address(Field):
     def __init__(self, value):
         if not value.strip():
-            raise ValueError("Address cannot be empty.")
+            raise ValueError(f"{Fore.RED}Address cannot be empty.{Style.RESET_ALL}")
         super().__init__(value.strip())
 #--------------#          
 '''Клас для зберігання інформації про контакт, включаючи ім'я та список телефонів.'''
@@ -86,7 +75,7 @@ class Record:
             self.phones.remove(phone)
             self.phones.append(Phone(new_number))
         else:
-            raise ValueError("Phone number not found.")
+            raise ValueError(f"{Fore.RED}Phone number not found.{Style.RESET_ALL}")
 
     def find_phone(self, phone_number):
         for phone in self.phones:
@@ -246,11 +235,11 @@ def input_error(func):
         try:
             return func(*args, **kwargs)
         except KeyError:
-            return "Contact not found."
+            return f"{Fore.RED}Contact not found.{Style.RESET_ALL}"
         except ValueError as e:
-            return str(e)
+            return Fore.RED + str(e) + Style.RESET_ALL
         except IndexError:
-            return "Not enough parameters."
+            return f"{Fore.RED}Not enough parameters.{Style.RESET_ALL}"
        # except EmptyLine:
     return wrapper
 #---------------#
@@ -259,11 +248,11 @@ def input_error(func):
 def add_contact(args, book):
     name, phone, *_ = args
     record = book.find(name)
-    message = "Contact updated."
+    message = f"{Fore.BLUE}Contact updated.{Style.RESET_ALL}"
     if record is None:
         record = Record(name)
         book.add_record(record)
-        message = "Contact added."
+        message = f"{Fore.YELLOW}Contact added.{Style.RESET_ALL}"
     if phone:
         record.add_phone(phone)
     return message
@@ -275,7 +264,7 @@ def change_contact(args, book):
     record = book.find(name)
     if record:
         record.edit_phone(old_phone, new_phone)
-        return "Phone updated."
+        return f"{Fore.BLUE}Phone updated.{Style.RESET_ALL}"
     else:
         raise KeyError
     
@@ -309,10 +298,25 @@ def show_phone(args, book):
 #---------------#
 '''Show all contacts'''
 @input_error
-def show_all(args, book):
+def show_all(book):
+    res = pd.DataFrame()
+    for record in book.data.values():
+        phones = "\n".join(p.value for p in record.phones)
+        birthday = str(record.birthday) if record.birthday else "No birthday"
+        email = str(record.email) if record.email else "No email"
+        address = str(record.address) if record.address else "No address"
+        
+        res = res._append({
+            "Name": record.name.value,
+            "Phones": phones,
+            "Birthday": birthday,
+            "Email": email,
+            "Address": address
+        }, ignore_index=True)
     if not book.data:
-        return "No contacts found."
-    return '\n'.join(str(record) for record in book.data.values())
+        return f"{Fore.RED}No contacts found.{Style.RESET_ALL}"
+    return (Fore.GREEN + tabulate(res, headers="keys", tablefmt="grid", showindex=False, colalign=("center", "center", "center", "center", "center")) + Style.RESET_ALL)
+    #return '\n'.join(str(record) for record in book.data.values())
 
 #---------------#
 '''Add BD to Contact'''
@@ -322,7 +326,7 @@ def add_birthday(args, book):
     record = book.find(name)
     if record:
         record.add_birthday(date)
-        return "Birthday added."
+        return f"{Fore.YELLOW}Birthday added.{Style.RESET_ALL}"
     else:
         raise KeyError
 
@@ -333,7 +337,7 @@ def show_birthday(args, book):
     name = args[0]
     record = book.find(name)
     if record and record.birthday:
-        return f"{name}'s birthday is {record.birthday}"
+        return f"{name}'s birthday is {Fore.YELLOW, record.birthday, Style.RESET_ALL}"
     elif record:
         return f"{name} has no birthday set."
     else:
@@ -396,7 +400,7 @@ def show_email(args, book):
     if record and record.email:
         return f"{name}'s email is {record.email}"
     elif record:
-        return f"{name} has no email set."
+        return f"{Fore.BLUE, name} has no email set.{Style.RESET_ALL}"
     else:
         raise KeyError
 '''Remove PhoneNumber'''
@@ -416,7 +420,7 @@ def add_phone(args, book):
     record = book.find(name)
     if record:
         record.add_phone(phone)
-        return "Phone added."
+        return f"{Fore.YELLOW}Phone added.{Style.RESET_ALL}"
     else:
         raise KeyError
 #------ADDRESS FUNCTIONS------#
@@ -428,7 +432,7 @@ def add_address(args, book):
     record = book.find(name)
     if record:
         record.add_address(address)
-        return "Address added."
+        return f"{Fore.YELLOW}Address added.{Style.RESET_ALL}"
     else:
         raise KeyError
 '''Show Address'''
@@ -437,11 +441,12 @@ def show_address(args, book):
     name = args[0]
     record = book.find(name)
     if record and record.address:
-        return f"{name}'s address is {record.address}"
+        return f"{name}'s address is {Fore.YELLOW, record.address, Style.RESET_ALL}"
     elif record:
-        return f"{name} has no address set."
+        return f"{Fore.BLUE, name} has no address set.{Style.RESET_ALL}"
     else:
         raise KeyError
+    
 #------Notes-----------------------------------------#
 '''Add Notes'''
 @input_error
@@ -461,31 +466,22 @@ def add_note(args, notebook):
     note = Note(text, tags)
     notebook.add_note(note)
     return "Note added."
-#@input_error
-#def add_note(args, notebook):
-#    if not args:
-#        raise ValueError("Please provide a note text.")
-#    
-#    text = args[0]
-#    tags = args[1:]  # необов’язкові теги
-#    note = Note(text, tags)
-#    notebook.add_note(note)
-#    return "Note added."
+
 '''Delete Notes'''
 @input_error
 def delete_note(args, notebook):
     note_id = args[0]
     if note_id in notebook.data:
         notebook.delete_note(note_id)
-        return f"Note {note_id} deleted."
+        return f"Note {Fore.YELLOW, note_id, Style.RESET_ALL} deleted."
     else:
-        return "Note ID not found."
+        return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
 '''Show Notes'''
 @input_error
-def show_notes(args, notebook):
+def show_notes(notebook):
     if not notebook.data:
-        return "No notes found."
-    
+        return f"{Fore.RED}No notes found.{Style.RESET_ALL}"
+
     result = []
     for note_id, note in notebook.get_all_notes():
         result.append(f"{note_id}: {note}")
@@ -494,56 +490,57 @@ def show_notes(args, notebook):
 @input_error
 def find_tag(args, notebook):
     if not args:
-        raise ValueError("Please provide a tag to search.")
+        raise ValueError(f"{Fore.RED}Please provide a tag to search.{Style.RESET_ALL}")
 
     keyword = args[0]
     results = notebook.find_by_tag(keyword)
 
     if not results:
-        return f"No notes found with tag containing '{keyword}'."
+        return f"{Fore.RED}No notes found with tag containing '{Fore.YELLOW, keyword, Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
 '''Serch Notes'''
 @input_error
 def find_note(args, notebook):
     if not args:
-        raise ValueError("Please provide a keyword to search in note text.")
+        raise ValueError(f"{Fore.RED}Please provide a keyword to search in note text.{Style.RESET_ALL}")
     
     keyword = args[0]
     results = notebook.search_text(keyword)
 
     if not results:
-        return f"No notes found containing '{keyword}'."
+        return f"{Fore.RED}No notes found containing '{Fore.RED, keyword, Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
 '''Edit Notes'''
 @input_error
 def edit_note_command(args, notebook):
     if len(args) < 2:
-        raise ValueError("Usage: edit-note <note_id> <new_text>")
+        raise ValueError(f"Usage: {Fore.YELLOW}edit-note <note_id> <new_text>{Style.RESET_ALL}")
     
     note_id = args[0]
     new_text = ' '.join(args[1:])  # дозволяємо багатослівний текст
 
     if note_id in notebook.data:
         notebook.edit_note(note_id, new_text)
-        return f"Note {note_id} updated."
+        return f"Note {Fore.YELLOW, note_id, Style.RESET_ALL} updated."
     else:
-        return "Note ID not found."
-'''Add Tag to Note'''
+        return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
 @input_error
 def add_tag_command(args, notebook):
     if len(args) < 2:
-        raise ValueError("Usage: add-tag <note_id> <tag>")
+        raise ValueError(f"Usage: {Fore.YELLOW}add-tag <note_id> <tag>{Style.RESET_ALL}")
 
     note_id = args[0]
     tag = args[1]
 
     if note_id in notebook.data:
         notebook.data[note_id].add_tag(tag)
-        return f"Tag '{tag}' added to note {note_id}."
+        return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' added to note {Fore.YELLOW, note_id, Style.RESET_ALL}."
     else:
-        return "Note ID not found."
+        return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
 @input_error
 def delete_tag_command(args, notebook):
     if len(args) < 2:
@@ -556,12 +553,12 @@ def delete_tag_command(args, notebook):
         note = notebook.data[note_id]
         if tag in note.tags:
             note.remove_tag(tag)
-            return f"Tag '{tag}' removed from note {note_id}."
+            return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' removed from note {Fore.YELLOW, note_id, Style.RESET_ALL}."
         else:
-            return f"Tag '{tag}' not found in note {note_id}."
+            return f"{Fore.RED}Tag '{Fore.YELLOW, tag, Fore.RED}' not found in note {Fore.YELLOW, note_id, Fore.RED}.{Style.RESET_ALL}"
     else:
-        return "Note ID not found."
-
+        return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
 '''Sort Notes by parametrs:
     sort-notes                       # за датою створення (від старих до нових)
     sort-notes date desc             # за датою у зворотному порядку
@@ -577,45 +574,65 @@ def sort_notes(args, notebook):
     sorted_notes = notebook.get_sorted_notes(sort_type=sort_type, reverse=reverse)
 
     if not sorted_notes:
-        return "No notes found."
+        return f"{Fore.RED}No notes found.{Style.RESET_ALL}"
 
     return '\n'.join([f"{note_id}: {note}" for note_id, note in sorted_notes])
+
+#---------------#
+'''Corrective Command'''
+
+valide_comands = [
+    "close", "exit", "hello", "add", "change", "phone", "all", "add-birthday",
+    "show-birthday", "birthdays", "show", "remove-phone", "add-phone",
+    "add-email", "show-email", "add-address", "show-address", "add-note",
+    "delete-note", "show-notes", "find-tag", "find-note", "edit-note",
+    "add-tag", "delete-tag"]
+
+@input_error
+def corective_command(command, valide_comands, args):
+    closest_matches = difflib.get_close_matches(command, valide_comands, n=2, cutoff=0.6)
+    if closest_matches:
+        Match = ' '.join([closest_matches[0]] + args[:])
+        confirm = input(f"{Fore.YELLOW}Did you mean {Match} ? Y/N:{Style.RESET_ALL} ").strip().lower()
+        return Match if confirm.lower() == 'y' else None
+    return
+
 #---------------#
 '''Menu'''
 def print_available_commands():
-    print("Control commands:")
-    print("  hello                        - Greet the bot")
-    print("  show                         - Show all commands")
-    print("  close / exit                 - Exit the bot") 
-    ''''''
-    print("Available commands for Addressbook:")    
-    print("  add <name> <phone>           - Add a new contact")
-    print("  change <name> <new phone>    - Change existing contact's phone")
-    print("  search                       - Search contact by the phone number or a name")
-    print("  all                          - Show all contacts")    
-    ''''''
-    print("  add-birthday <name> <DD.MM.YYYY>         - Add BD to Contact")
-    print("  show-birthday <name>         - Show BD of Contact")
-    print("  birthdays                    - Show upcoming birthdays (next 7 days)")
-    print("  birthdays-in <days>          - Show birthdays in next X days")    
-    ''''''
-    print("  add-phone <name> <phone>     - Add phone to existing contact")
-    print("  remove-phone <name> <phone>  - Remove phone from contact")
-    print("  add-email <name> <email>     - Add email to contact")
-    print("  show-email <name>            - Show email of contact")
-    print("  add-address <name> <address> - Add address to contact")
-    print("  show-address <name>          - Show address of contact")
-    '''Notes'''
-    print("Available commands for Notebook:")   
-    print("  add-note <text> [tags...]     - Add a note with optional tags")
-    print("  delete-note <note_id>         - Delete a note by its ID")
-    print("  show-notes                    - Show all notes")
-    print("  find-tag <tag>                - Find notes by tag (partial match)")
-    print("  find-note <text>              - Find notes by text content")
-    print("  edit-note <id> <new text>     - Edit text of an existing note")
-    print("  add-tag <id> <tag>             - Add a tag to a note")
-    print("  delete-tag <id> <tag>         - Remove a tag from a note")
-    print("  sort-notes [date|tag-count|tag-name] [desc] - Sort notes by selected method")
+    print(Fore.YELLOW + """
+    Control commands:    
+         hello                             - Greet the bot
+         close / exit                      - Exit the bot
+         show                              - Show all commands
+          
+    Available commands for Addressbook:
+      add <name> <phone>                - Add a new contact
+      all                               - Show all contacts
+      change <name> <new phone>         - Change existing contact's phone
+      search                            - Show the phone number of a contact      
+      add-birthday <name> <DD.MM.YYYY>  - Add BD to Contact
+      show-birthday <name>              - Show BD of Contact 
+      birthdays                         - Show upcoming birthdays (next 7 days)
+      birthdays-in <days>               - Show birthdays in next X days             
+      add-phone <name> <phone>          - Add phone to existing contact
+      remove-phone <name> <phone>       - Remove phone from contact
+      add-email <name> <email>          - Add email to contact
+      show-email <name>                 - Show email of contact
+      add-address <name> <address>      - Add address to contact
+      show-address <name>               - Show address of contact
+    
+    Available commands for Notebook:    
+      add-note <text> [tags...]         - Add a note with optional tags
+      delete-note <note_id>             - Delete a note by its ID
+      show-notes                        - Show all notes
+      find-tag <tag>                    - Find notes by tag (partial match)
+      find-note <text>                  - Find notes by text content
+      edit-note <id> <new text>         - Edit text of an existing note
+      add-tag <id> <tag>                - Add a tag to a note
+      delete-tag <id> <tag>             - Remove a tag from a note
+      sort-notes [date|tag-count|tag-name] [desc] - Sort notes by selected method
+    """ + Style.RESET_ALL)
     
 
 #---------------#
@@ -643,7 +660,7 @@ def load_data(filename, default_factory):
         with open(filename, "rb") as f:
             return pickle.load(f)
     except FileNotFoundError:
-        print(f"No file found: {filename}. Creating new empty object...")
+        print(f"{Fore.RED}No file found:{Style.RESET_ALL} {filename}. {Fore.YELLOW}Creating new empty object...{Style.RESET_ALL}")
         return default_factory()
 #def load_data(filename="addressbook.pkl"):
 #    try:
@@ -663,85 +680,116 @@ def main():
     notebook = load_data("notes.pkl", Notebook)
     print("Welcome to the assistant bot!")
     print_available_commands()
+    autopaste = None
 
     while True:
         # user_input = input("Enter a command: ")
         # command, args = parse_input(user_input)
-        user_input = input("Enter a command: ").strip()
+        # init(autoreset=True)
         #---------------#
         '''Command Valodator'''
-        if not user_input:
-            print_available_commands()
-            continue
-        try:
-            command, args = parse_input(user_input)
-        except ValueError:
-            print_available_commands()
-            continue
-        ''''''
-        if command in ["close", "exit"]:
-            '''Save AddressBook before exit '''
-            save_data(book, "addressbook.pkl")
-            save_data(notebook, "notes.pkl")
-            print("Good bye!")
-            break
-        elif command == "hello":
-            print("How can I help you?")
-        elif command == "add":
-            print(add_contact(args, book))
-        elif command == "change":
-            print(change_contact(args, book))
-        elif command == "search":
-            print(show_phone(args, book))
-        elif command == "all":
-            print(show_all(args, book))
-        elif command == "add-birthday":
-            print(add_birthday(args, book))
-        elif command == "show-birthday":
-            print(show_birthday(args, book))
-        elif command == "birthdays":
-            print(birthdays(args, book))
-        elif command == "birthdays-in":
-            print(birthdays_in_days(args, book))
-        elif command == "show":
-            print_available_commands()
-        elif command == "remove-phone":
-            print(remove_phone(args, book))
-        elif command == "add-phone":
-            print(add_phone(args, book))
-        elif command == "add-email":
-            print(add_email(args, book))
-        elif command == "add-email":
-            print(add_email(args, book))
-        elif command == "show-email":
-            print(show_email(args, book))
-        elif command == "add-address":
-            print(add_address(args, book))
-        elif command == "show-address":
-            print(show_address(args, book))
-       #-----Notes---------
-        elif command == "add-note":
-            print(add_note(args, notebook))
-        elif command == "delete-note":
-            print(delete_note(args, notebook))
-        elif command == "show-notes":
-            print(show_notes(args, notebook))
-        elif command == "find-tag":
-            print(find_tag(args, notebook))
-        elif command == "find-note":
-            print(find_note(args, notebook))
-        elif command == "edit-note":
-            print(edit_note_command(args, notebook))
-        elif command == "add-tag":
-            print(add_tag_command(args, notebook))
-        elif command == "delete-tag":
-            print(delete_tag_command(args, notebook))
-        elif command == "sort-notes":
-            print(sort_notes(args, notebook))
+        if autopaste:
+            try:
+                command, args = parse_input(autopaste)
+                autopaste = None
+            except ValueError:
+                print_available_commands()
+                autopaste = None
+                continue
         else:
-            print("Invalid command. Please select correct one of ")
-            print_available_commands()
-   
+            user_input = input(f"Enter a command: ").strip()
+            try:
+                command, args = parse_input(user_input)
+            except ValueError:
+                print_available_commands()
+                continue
+            
+        ''''''
+
+        match command:
+            case "close" | "exit":
+                '''Save AddressBook before exit'''
+                save_data(book, "addressbook.pkl")
+                save_data(notebook, "notes.pkl")
+                print("Good bye!")
+                break
+
+            case "hello":
+                print("How can I help you?")
+
+            case "add":
+                print(add_contact(args, book))
+
+            case "change":
+                print(change_contact(args, book))
+
+            case "search":
+                print(show_phone(args, book))
+
+            case "all":
+                print(show_all(book))
+
+            case "add-birthday":
+                print(add_birthday(args, book))
+
+            case "show-birthday":
+                print(show_birthday(args, book))
+
+            case "birthdays":
+                print(birthdays(args, book))
+
+            case "birthdays-in":
+                print(birthdays_in_days(args, book))
+
+            case "show":
+                print_available_commands()
+
+            case "remove-phone":
+                print(remove_phone(args, book))
+
+            case "add-phone":
+                print(add_phone(args, book))
+
+            case "add-email":
+                print(add_email(args, book))
+
+            case "show-email":
+                print(show_email(args, book))
+
+            case "add-address":
+                print(add_address(args, book))
+
+            case "show-address":
+                print(show_address(args, book))
+
+            # ----- Notes -----
+            case "add-note":
+                print(add_note(args, notebook))
+
+            case "delete-note":
+                print(delete_note(args, notebook))
+
+            case "show-notes":
+                print(show_notes(notebook))
+
+            case "find-tag":
+                print(find_tag(args, notebook))
+
+            case "find-note":
+                print(find_note(args, notebook))
+
+            case "edit-note":
+                print(edit_note_command(args, notebook))
+
+            case "add-tag":
+                print(add_tag_command(args, notebook))
+
+            case "delete-tag":
+                print(delete_tag_command(args, notebook))
+
+            case _:
+                print(f"{Fore.RED}command not found.{Style.RESET_ALL}")
+                autopaste = corective_command(command, valide_comands, args)
 
 
 if __name__ == "__main__":
