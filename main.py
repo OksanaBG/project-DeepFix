@@ -446,19 +446,27 @@ def show_address(args, book):
         return f"{Fore.BLUE, name} has no address set.{Style.RESET_ALL}"
     else:
         raise KeyError
+    
 #------Notes-----------------------------------------#
 '''Add Notes'''
 @input_error
 def add_note(args, notebook):
-    if not args:
-        raise ValueError(f"{Fore.RED}Please provide a note text.{Style.RESET_ALL}")
-    
-    text = args[0]
-    tags = args[1:]  # необов’язкові теги
+    print("Please enter your note text:")
+    text = input(">>> ").strip()
+
+    if not text:
+        raise ValueError("Note text cannot be empty.")
+
+    print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
+    raw_tags = input(">>> ").strip()
+
+    # Розділяємо по крапці з комою
+    tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
 
     note = Note(text, tags)
     notebook.add_note(note)
-    return f"{Fore.YELLOW}Note added.{Style.RESET_ALL}"
+    return "Note added."
+
 '''Delete Notes'''
 @input_error
 def delete_note(args, notebook):
@@ -518,6 +526,7 @@ def edit_note_command(args, notebook):
         return f"Note {Fore.YELLOW, note_id, Style.RESET_ALL} updated."
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
 @input_error
 def add_tag_command(args, notebook):
     if len(args) < 2:
@@ -531,6 +540,7 @@ def add_tag_command(args, notebook):
         return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' added to note {Fore.YELLOW, note_id, Style.RESET_ALL}."
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
 @input_error
 def delete_tag_command(args, notebook):
     if len(args) < 2:
@@ -548,7 +558,25 @@ def delete_tag_command(args, notebook):
             return f"{Fore.RED}Tag '{Fore.YELLOW, tag, Fore.RED}' not found in note {Fore.YELLOW, note_id, Fore.RED}.{Style.RESET_ALL}"
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
+'''Sort Notes by parametrs:
+    sort-notes                       # за датою створення (від старих до нових)
+    sort-notes date desc             # за датою у зворотному порядку
+    sort-notes tag-count             # за кількістю тегів
+    sort-notes tag-count desc        # за кількістю тегів у зворотному порядку
+    sort-notes tag-name              # за алфавітом першого тегу
+'''
+@input_error
+def sort_notes(args, notebook):
+    sort_type = args[0].lower() if args else "date"
+    reverse = "desc" in args
 
+    sorted_notes = notebook.get_sorted_notes(sort_type=sort_type, reverse=reverse)
+
+    if not sorted_notes:
+        return f"{Fore.RED}No notes found.{Style.RESET_ALL}"
+
+    return '\n'.join([f"{note_id}: {note}" for note_id, note in sorted_notes])
 
 #---------------#
 '''Corrective Command'''
@@ -709,6 +737,9 @@ def main():
 
             case "birthdays":
                 print(birthdays(args, book))
+
+            case "birthdays-in":
+                print(birthdays_in_days(args, book))
 
             case "show":
                 print_available_commands()
