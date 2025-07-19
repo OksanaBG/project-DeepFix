@@ -476,24 +476,28 @@ def corective_command(command, valide_comands, args):
 '''Menu'''
 def print_available_commands():
     print(Fore.YELLOW + """
-    Available commands:
+    Control commands:    
+         hello                             - Greet the bot
+         close / exit                      - Exit the bot
+         show                              - Show all commands
           
-      hello                             - Greet the bot
+    Available commands for Addressbook:
       add <name> <phone>                - Add a new contact
-      change <name> <new phone>         - Change existing contact's phone
-      phone <name>                      - Show the phone number of a contact
       all                               - Show all contacts
-      show                              - Show all commands
+      change <name> <new phone>         - Change existing contact's phone
+      search                            - Show the phone number of a contact      
       add-birthday <name> <DD.MM.YYYY>  - Add BD to Contact
-      show-birthday <name>              - Show BD of Contact
-      show                              - Show all commands
-      close / exit                      - Exit the bot
+      show-birthday <name>              - Show BD of Contact 
+      birthdays                         - Show upcoming birthdays (next 7 days)
+      birthdays-in <days>               - Show birthdays in next X days             
       add-phone <name> <phone>          - Add phone to existing contact
       remove-phone <name> <phone>       - Remove phone from contact
       add-email <name> <email>          - Add email to contact
       show-email <name>                 - Show email of contact
       add-address <name> <address>      - Add address to contact
       show-address <name>               - Show address of contact
+    
+    Available commands for Notebook:    
       add-note <text> [tags...]         - Add a note with optional tags
       delete-note <note_id>             - Delete a note by its ID
       show-notes                        - Show all notes
@@ -502,6 +506,7 @@ def print_available_commands():
       edit-note <id> <new text>         - Edit text of an existing note
       add-tag <id> <tag>                - Add a tag to a note
       delete-tag <id> <tag>             - Remove a tag from a note
+      sort-notes [date|tag-count|tag-name] [desc] - Sort notes by selected method
     """ + Style.RESET_ALL)
     
 
@@ -595,7 +600,7 @@ def main():
             case "change":
                 print(change_contact(args, book))
 
-            case "phone":
+            case "search":
                 print(show_phone(args, book))
 
             case "all":
@@ -639,7 +644,7 @@ def main():
                 print(delete_note(args, notebook))
 
             case "show-notes":
-                print(show_notes(args, notebook))
+                print(show_notes(notebook))
 
             case "find-tag":
                 print(find_tag(args, notebook))
