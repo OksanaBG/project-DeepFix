@@ -323,7 +323,7 @@ def show_phone(args, book):
         if name_match or phone_match:
             # номера через ;
             phones = "; ".join(p.value for p in record.phones)
-            results.append(f"{record.name.value}: {phones}")
+            results.append(str(record))
 
     if not results:
         return "No matching contacts found."
@@ -653,7 +653,7 @@ def print_available_commands():
     Available commands for Addressbook:
       add <name> <phone>                - Add a new contact
       all                               - Show all contacts
-      change <name> <new phone>         - Change existing contact's phone
+      change <name> <old phone> <new phone>- Change existing contact's phone
       search                            - Show the phone number of a contact      
       add-birthday <name> <DD.MM.YYYY>  - Add BD to Contact
       show-birthday <name>              - Show BD of Contact 
@@ -702,7 +702,43 @@ def load_data(filename, default_factory):
         print(f"{Fore.RED}No file found:{Style.RESET_ALL} {filename}. {Fore.YELLOW}Creating new empty object...{Style.RESET_ALL}")
         return default_factory()
 
+# ========== УТИЛІТИ ДЛЯ ВЗАЄМОДІЇ ========== #
+def handle_add_note_interactive(notebook):
+    print("Please enter your note text:")
+    text = input(">>> ").strip()
 
+    print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
+    raw_tags = input(">>> ").strip()
+    tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
+    return add_note(text, tags, notebook)
+
+# ========== СЛОВНИК КОМАНД ========== #
+COMMANDS = {
+    "hello": lambda args, book, notebook: "How can I help you?",
+    "add": lambda args, book, notebook: add_contact(args[0], args[1], book) if len(args) >= 2 else f"{Fore.RED}Usage: add <name> <phone>{Style.RESET_ALL}",
+    "change": lambda args, book, notebook: change_contact(args, book),
+    "search": lambda args, book, notebook: show_phone(args, book),
+    "all": lambda args, book, notebook: show_all(book),
+    "add-birthday": lambda args, book, notebook: add_birthday(args, book),
+    "show-birthday": lambda args, book, notebook: show_birthday(args, book),
+    "birthdays": lambda args, book, notebook: birthdays(args, book),
+    "birthdays-in": lambda args, book, notebook: birthdays_in_days(args, book),
+    "remove-phone": lambda args, book, notebook: remove_phone(args, book),
+    "add-phone": lambda args, book, notebook: add_phone(args, book),
+    "add-email": lambda args, book, notebook: add_email(args, book),
+    "show-email": lambda args, book, notebook: show_email(args, book),
+    "add-address": lambda args, book, notebook: add_address(args, book),
+    "show-address": lambda args, book, notebook: show_address(args, book),
+    "add-note": lambda args, book, notebook: handle_add_note_interactive(notebook),
+    "delete-note": lambda args, book, notebook: delete_note(args, notebook),
+    "show-notes": lambda args, book, notebook: show_notes(notebook),
+    "find-tag": lambda args, book, notebook: find_tag(args, notebook),
+    "find-note": lambda args, book, notebook: find_note(args, notebook),
+    "edit-note": lambda args, book, notebook: edit_note_command(args, notebook),
+    "add-tag": lambda args, book, notebook: add_tag_command(args, notebook),
+    "delete-tag": lambda args, book, notebook: delete_tag_command(args, notebook),
+    "show": lambda args, book, notebook: print_available_commands() or ""
+}
 #---------------#
 '''Main'''
 def main():
@@ -714,7 +750,6 @@ def main():
     autopaste = None
 
     while True:
-        '''Command Valodator'''
         if autopaste:
             try:
                 command, args = parse_input(autopaste)
@@ -724,121 +759,35 @@ def main():
                 autopaste = None
                 continue
         else:
-            user_input = input(f"Enter a command: ").strip()
+            user_input = input("Enter a command: ").strip()
             try:
                 command, args = parse_input(user_input)
             except ValueError:
                 print_available_commands()
                 continue
-            
-        ''''''
 
-        match command:
-            case "close" | "exit":
-                '''Save AddressBook before exit'''
-                save_data(book, "addressbook.pkl")
-                save_data(notebook, "notes.pkl")
-                print("Good bye!")
-                break
+        if command in ("exit", "close"):
+            save_data(book, "addressbook.pkl")
+            save_data(notebook, "notes.pkl")
+            print("Good bye!")
+            break
 
-            case "hello":
-                print("How can I help you?")
-
-            case "add":
-                if len(args) < 2:
-                    print(f"{Fore.RED}Usage: add <name> <phone>{Style.RESET_ALL}")
+        handler = COMMANDS.get(command)
+        if handler:
+            result = handler(args, book, notebook)
+            if result:
+                print(result)
+        else:
+            suggestion = corective_command(command, valide_comands, args)
+            if suggestion:
+                confirm = input(f"{Fore.YELLOW}Did you mean '{suggestion}'? Y/N: {Style.RESET_ALL}").strip().lower()
+                if confirm == 'y':
+                    autopaste = suggestion
                     continue
-                name = args[0]
-                phone = args[1]
-                print(add_contact(name, phone, book))
-
-            case "change":
-                print(change_contact(args, book))
-
-            case "search":
-                print(show_phone(args, book))
-
-            case "all":
-                print(show_all(book))
-
-            case "add-birthday":
-                print(add_birthday(args, book))
-
-            case "show-birthday":
-                print(show_birthday(args, book))
-
-            case "birthdays":
-                print(birthdays(args, book))
-
-            case "birthdays-in":
-                print(birthdays_in_days(args, book))
-
-            case "show":
-                print_available_commands()
-
-            case "remove-phone":
-                print(remove_phone(args, book))
-
-            case "add-phone":
-                print(add_phone(args, book))
-
-            case "add-email":
-                print(add_email(args, book))
-
-            case "show-email":
-                print(show_email(args, book))
-
-            case "add-address":
-                print(add_address(args, book))
-
-            case "show-address":
-                print(show_address(args, book))
-
-            # ----- Notes -----
-            case "add-note":
-                print("Please enter your note text:")
-                text = input(">>> ").strip()
-
-                print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
-                raw_tags = input(">>> ").strip()
-                tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
-
-                print(add_note(text, tags, notebook))
-
-            case "delete-note":
-                print(delete_note(args, notebook))
-
-            case "show-notes":
-                print(show_notes(notebook))
-
-            case "find-tag":
-                print(find_tag(args, notebook))
-
-            case "find-note":
-                print(find_note(args, notebook))
-
-            case "edit-note":
-                print(edit_note_command(args, notebook))
-
-            case "add-tag":
-                print(add_tag_command(args, notebook))
-
-            case "delete-tag":
-                print(delete_tag_command(args, notebook))
-
-            case _:
-                suggestion = corective_command(command, valide_comands, args)
-                if suggestion:
-                    confirm = input(f"{Fore.YELLOW}Did you mean '{suggestion}'? Y/N: {Style.RESET_ALL}").strip().lower()
-                    if confirm == 'y':
-                        # 👉 перезапускаємо цикл з новою командою
-                        autopaste = suggestion
-                        continue
-                    else:
-                        print(f"{Fore.RED}Command not recognized.{Style.RESET_ALL}")
                 else:
                     print(f"{Fore.RED}Command not recognized.{Style.RESET_ALL}")
-
+            else:
+                print(f"{Fore.RED}Command not recognized.{Style.RESET_ALL}")
 
 if __name__ == "__main__":
     main()
