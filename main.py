@@ -6,6 +6,8 @@ from tabulate import tabulate       #for center table
 import re
 from collections import UserDict
 from datetime import datetime, timedelta
+
+
  #--------------#   
 '''Базовий клас для полів запису'''
 class Field:
@@ -14,12 +16,16 @@ class Field:
 
     def __str__(self):
         return str(self.value)
+
+
  #--------------#   
 '''Клас для зберігання імені контакту. Обов'язкове поле.'''
 class Name(Field):
     pass
- #--------------#   
-'''Birthday з можливістю додавання поля для дня народження до контакту'''
+
+
+#--------------#   
+'''Клас Birthday з можливістю додавання поля для дня народження до контакту'''
 class Birthday(Field):
     def __init__(self, value):
         try:
@@ -30,6 +36,7 @@ class Birthday(Field):
     def __str__(self):
         return self.value.strftime("%d.%m.%Y")
 
+
 #--------------#   
 '''Клас для зберігання номера телефону з покращеною валідацією'''
 class Phone(Field):
@@ -37,6 +44,8 @@ class Phone(Field):
         if not value.isdigit() or len(value) != 10:
             raise ValueError(f"{Fore.RED}Phone number must be 10 digits.{Style.RESET_ALL}")
         super().__init__(value)
+
+
 #--------------#    
 '''Клас Email з валідацією рядка - умова у рядку є @ та .''' 
 class Email(Field):
@@ -44,6 +53,8 @@ class Email(Field):
         if "@" not in value or "." not in value:
             raise ValueError(f"{Fore.RED}Invalid email address.{Style.RESET_ALL}")
         super().__init__(value)
+
+
 #------ADDRESS CLASS------#
 '''Клас Address для зберігання адреси контакту'''
 class Address(Field):
@@ -51,6 +62,8 @@ class Address(Field):
         if not value.strip():
             raise ValueError(f"{Fore.RED}Address cannot be empty.{Style.RESET_ALL}")
         super().__init__(value.strip())
+
+
 #--------------#          
 '''Клас для зберігання інформації про контакт, включаючи ім'я та список телефонів.'''
 class Record:
@@ -85,12 +98,15 @@ class Record:
     
     def add_birthday(self, birthday_str):
         self.birthday = Birthday(birthday_str)
+    
     #-------add email--------#
     def add_email(self, email_str):
         self.email = Email(email_str)
+    
     #-------add address--------#
     def add_address(self, address_str):
         self.address = Address(address_str)
+    
     def __str__(self):
         phones_str = '; '.join(p.value for p in self.phones)
         bday_str = f", birthday: {self.birthday}" if self.birthday else ""
@@ -168,7 +184,7 @@ class AddressBook(UserDict):
         birthdays_in_period.sort(key=lambda x: x['days_until'])
         return birthdays_in_period
     
-#--15/07/2025----------------------------------------------#
+
 '''Клас Note- нотаток із текстом і тегом. Тегі можуть бути пусті'''
 class Note:
     def __init__(self, text, tags=None):
@@ -216,7 +232,8 @@ class Notebook(UserDict):
 
     def get_all_notes(self):
         return list(self.data.items())
-    #----17/05/2025---sort method for notes
+    
+    #-------sort method for notes
     def get_sorted_notes(self, sort_type="date", reverse=False):
         if sort_type == "date":
             key_func = lambda item: item[1].created
@@ -242,7 +259,8 @@ def input_error(func):
             return f"{Fore.RED}Not enough parameters.{Style.RESET_ALL}"
        # except EmptyLine:
     return wrapper
-#---------------#
+
+
 '''Add Contact'''
 @input_error
 def add_contact(args, book):
@@ -256,7 +274,8 @@ def add_contact(args, book):
     if phone:
         record.add_phone(phone)
     return message
-#---------------#
+
+
 '''Change Contact'''
 @input_error
 def change_contact(args, book):
@@ -268,7 +287,7 @@ def change_contact(args, book):
     else:
         raise KeyError
     
-#---------------#
+
 '''Show Phone - Serch contact by Name/Phone'''
 @input_error
 def show_phone(args, book):
@@ -295,7 +314,7 @@ def show_phone(args, book):
     # кожне входження з нового рядкаф
     return '\n'.join(results)
 
-#---------------#
+
 '''Show all contacts'''
 @input_error
 def show_all(book):
@@ -316,9 +335,8 @@ def show_all(book):
     if not book.data:
         return f"{Fore.RED}No contacts found.{Style.RESET_ALL}"
     return (Fore.GREEN + tabulate(res, headers="keys", tablefmt="grid", showindex=False, colalign=("center", "center", "center", "center", "center")) + Style.RESET_ALL)
-    #return '\n'.join(str(record) for record in book.data.values())
+   
 
-#---------------#
 '''Add BD to Contact'''
 @input_error
 def add_birthday(args, book):
@@ -330,7 +348,7 @@ def add_birthday(args, book):
     else:
         raise KeyError
 
-#---------------#
+
 '''Show BD of Contact'''
 @input_error
 def show_birthday(args, book):
@@ -343,7 +361,7 @@ def show_birthday(args, book):
     else:
         raise KeyError
 
-#---------------#
+
 '''Upcoming BDs'''
 @input_error
 def birthdays(args, book):
@@ -352,7 +370,7 @@ def birthdays(args, book):
         return "No upcoming birthdays."
     return '\n'.join([f"{b['name']} - {b['congratulation_date']}" for b in bdays])
 
-#---------------#
+
 '''Birthdays in specified days'''
 @input_error
 def birthdays_in_days(args, book):
@@ -381,7 +399,7 @@ def birthdays_in_days(args, book):
     
     return '\n'.join(result)
 
-#------15/07/2025---------#
+
 '''Add Email'''
 @input_error
 def add_email(args, book):
@@ -392,6 +410,8 @@ def add_email(args, book):
         return "Email added."
     else:
         raise KeyError
+    
+
 '''Show Email'''
 @input_error
 def show_email(args, book):
@@ -403,6 +423,8 @@ def show_email(args, book):
         return f"{Fore.BLUE, name} has no email set.{Style.RESET_ALL}"
     else:
         raise KeyError
+    
+
 '''Remove PhoneNumber'''
 @input_error
 def remove_phone(args, book):
@@ -413,6 +435,8 @@ def remove_phone(args, book):
         return "Phone removed."
     else:
         raise KeyError
+    
+
 '''Add PhoneNumber'''
 @input_error
 def add_phone(args, book):
@@ -423,6 +447,8 @@ def add_phone(args, book):
         return f"{Fore.YELLOW}Phone added.{Style.RESET_ALL}"
     else:
         raise KeyError
+    
+
 #------ADDRESS FUNCTIONS------#
 '''Add Address'''
 @input_error
@@ -435,6 +461,8 @@ def add_address(args, book):
         return f"{Fore.YELLOW}Address added.{Style.RESET_ALL}"
     else:
         raise KeyError
+    
+
 '''Show Address'''
 @input_error
 def show_address(args, book):
@@ -447,6 +475,7 @@ def show_address(args, book):
     else:
         raise KeyError
     
+
 #------Notes-----------------------------------------#
 '''Add Notes'''
 @input_error
@@ -467,6 +496,7 @@ def add_note(args, notebook):
     notebook.add_note(note)
     return "Note added."
 
+
 '''Delete Notes'''
 @input_error
 def delete_note(args, notebook):
@@ -476,6 +506,8 @@ def delete_note(args, notebook):
         return f"Note {Fore.YELLOW, note_id, Style.RESET_ALL} deleted."
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
+    
+
 '''Show Notes'''
 @input_error
 def show_notes(notebook):
@@ -486,6 +518,8 @@ def show_notes(notebook):
     for note_id, note in notebook.get_all_notes():
         result.append(f"{note_id}: {note}")
     return '\n'.join(result)
+
+
 '''Search by Tag Notes'''
 @input_error
 def find_tag(args, notebook):
@@ -499,6 +533,8 @@ def find_tag(args, notebook):
         return f"{Fore.RED}No notes found with tag containing '{Fore.YELLOW, keyword, Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
+
+
 '''Serch Notes'''
 @input_error
 def find_note(args, notebook):
@@ -512,6 +548,8 @@ def find_note(args, notebook):
         return f"{Fore.RED}No notes found containing '{Fore.RED, keyword, Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
+
+
 '''Edit Notes'''
 @input_error
 def edit_note_command(args, notebook):
@@ -527,6 +565,7 @@ def edit_note_command(args, notebook):
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
+
 @input_error
 def add_tag_command(args, notebook):
     if len(args) < 2:
@@ -541,6 +580,7 @@ def add_tag_command(args, notebook):
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
+
 @input_error
 def delete_tag_command(args, notebook):
     if len(args) < 2:
@@ -559,15 +599,16 @@ def delete_tag_command(args, notebook):
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
-'''Sort Notes by parametrs:
+
+@input_error
+def sort_notes(args, notebook):
+    '''Sort Notes by parametrs:
     sort-notes                       # за датою створення (від старих до нових)
     sort-notes date desc             # за датою у зворотному порядку
     sort-notes tag-count             # за кількістю тегів
     sort-notes tag-count desc        # за кількістю тегів у зворотному порядку
     sort-notes tag-name              # за алфавітом першого тегу
 '''
-@input_error
-def sort_notes(args, notebook):
     sort_type = args[0].lower() if args else "date"
     reverse = "desc" in args
 
@@ -578,9 +619,9 @@ def sort_notes(args, notebook):
 
     return '\n'.join([f"{note_id}: {note}" for note_id, note in sorted_notes])
 
+
 #---------------#
 '''Corrective Command'''
-
 valide_comands = [
     "close", "exit", "hello", "add", "change", "phone", "all", "add-birthday",
     "show-birthday", "birthdays", "show", "remove-phone", "add-phone",
@@ -596,6 +637,7 @@ def corective_command(command, valide_comands, args):
         confirm = input(f"{Fore.YELLOW}Did you mean {Match} ? Y/N:{Style.RESET_ALL} ").strip().lower()
         return Match if confirm.lower() == 'y' else None
     return
+
 
 #---------------#
 '''Menu'''
@@ -646,12 +688,7 @@ def parse_input(user_input):
 def save_data(obj, filename):
     with open(filename, "wb") as f:
         pickle.dump(obj, f)
-#def save_data(book, filename="addressbook.pkl"):
-#    with open(filename, "wb") as f:
-#        pickle.dump(book, f)
-#def save_data(book, filename="addressbook.pkl"):
-#    with open(filename, "wb") as f:
-#        pickle.dump(book, f)
+
 
 #---------------#
 '''Десеріалізація з pickle'''
@@ -662,20 +699,12 @@ def load_data(filename, default_factory):
     except FileNotFoundError:
         print(f"{Fore.RED}No file found:{Style.RESET_ALL} {filename}. {Fore.YELLOW}Creating new empty object...{Style.RESET_ALL}")
         return default_factory()
-#def load_data(filename="addressbook.pkl"):
-#    try:
-#        with open(filename, "rb") as f:
-#            return pickle.load(f)
-#    except FileNotFoundError:
-#        print("Starting new address book...") 
-#        return AddressBook()
-#---------------#
+
+
 #---------------#
 '''Main'''
 def main():
-    ###book = AddressBook()
     '''Load AddressBook'''
-     # book = load_data()
     book = load_data("addressbook.pkl", AddressBook)
     notebook = load_data("notes.pkl", Notebook)
     print("Welcome to the assistant bot!")
@@ -683,10 +712,6 @@ def main():
     autopaste = None
 
     while True:
-        # user_input = input("Enter a command: ")
-        # command, args = parse_input(user_input)
-        # init(autoreset=True)
-        #---------------#
         '''Command Valodator'''
         if autopaste:
             try:
