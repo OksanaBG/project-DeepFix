@@ -496,19 +496,7 @@ def show_address(args, book):
 #------Notes-----------------------------------------#
 '''Add Notes'''
 @input_error
-def add_note(args, notebook):
-    print("Please enter your note text:")
-    text = input(">>> ").strip()
-
-    if not text:
-        raise ValueError("Note text cannot be empty.")
-
-    print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
-    raw_tags = input(">>> ").strip()
-
-    # Розділяємо по крапці з комою
-    tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
-
+def add_note(text, tags, notebook):
     note = Note(text, tags)
     notebook.add_note(note)
     return "Note added."
@@ -806,7 +794,14 @@ def main():
 
             # ----- Notes -----
             case "add-note":
-                print(add_note(args, notebook))
+                print("Please enter your note text:")
+                text = input(">>> ").strip()
+
+                print("Please enter your tags for this note (separated by ';' or press Enter to skip):")
+                raw_tags = input(">>> ").strip()
+                tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
+
+                print(add_note(text, tags, notebook))
 
             case "delete-note":
                 print(delete_note(args, notebook))
