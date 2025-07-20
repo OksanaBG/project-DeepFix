@@ -41,16 +41,31 @@ class Birthday(Field):
 '''Клас для зберігання номера телефону з покращеною валідацією'''
 class Phone(Field):
     def __init__(self, value):
-        if not value.isdigit() or len(value) != 10:
-            raise ValueError(f"{Fore.RED}Phone number must be 10 digits.{Style.RESET_ALL}")
-        super().__init__(value)
+        # Очищаємо номер від спеціальних символів
+        cleaned = re.sub(r'[^\d+]', '', value)
+        
+        # Перевіряємо різні формати
+        if cleaned.startswith('+380') and len(cleaned) == 13:
+            self.value = cleaned
+        elif cleaned.startswith('380') and len(cleaned) == 12:
+            self.value = '+' + cleaned
+        elif cleaned.startswith('0') and len(cleaned) == 10:
+            self.value = '+38' + cleaned
+        elif len(cleaned) == 10 and cleaned.isdigit():
+            self.value = '+380' + cleaned
+        else:
+            raise ValueError("Invalid phone format. Use +380XXXXXXXXX, 380XXXXXXXXX, 0XXXXXXXXX, or XXXXXXXXXX")
+
+    def __str__(self):
+        return self.value
 
 
 #--------------#    
 '''Клас Email з валідацією рядка - умова у рядку є @ та .''' 
 class Email(Field):
     def __init__(self, value):
-        if "@" not in value or "." not in value:
+        pattern = r"^[\w\.-]+@[\w\.-]+\.\w{2,}$"
+        if not re.fullmatch(pattern, value):
             raise ValueError(f"{Fore.RED}Invalid email address.{Style.RESET_ALL}")
         super().__init__(value)
 
@@ -245,6 +260,8 @@ class Notebook(UserDict):
             raise ValueError("Unsupported sort type.")
 
         return sorted(self.data.items(), key=key_func, reverse=reverse)
+    
+
 # ---------------------------------------------------------#        
 '''Errors decorator'''   
 def input_error(func):
