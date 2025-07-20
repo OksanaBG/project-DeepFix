@@ -292,6 +292,18 @@ def add_contact(name, phone, book):
     return message
 
 
+@input_error
+def delete_contact(args, book):
+    if not args:
+        raise ValueError("Please provide the name of the contact to delete.")
+
+    name = args[0]
+    if book.find(name):
+        book.delete(name)
+        return f"{Fore.YELLOW}Contact '{name}' deleted.{Style.RESET_ALL}"
+    else:
+        raise KeyError
+
 '''Change Contact'''
 @input_error
 def change_contact(args, book):
@@ -371,9 +383,9 @@ def show_birthday(args, book):
     name = args[0]
     record = book.find(name)
     if record and record.birthday:
-        return f"{name}'s birthday is {Fore.YELLOW, record.birthday, Style.RESET_ALL}"
+        return f"{name}'s birthday is {Fore.YELLOW}{record.birthday}{Style.RESET_ALL}"
     elif record:
-        return f"{name} has no birthday set."
+        return f"{Fore.BLUE}{name} has no birthday set.{Style.RESET_ALL}"
     else:
         raise KeyError
 
@@ -507,10 +519,9 @@ def delete_note(args, notebook):
     note_id = args[0]
     if note_id in notebook.data:
         notebook.delete_note(note_id)
-        return f"Note {Fore.YELLOW, note_id, Style.RESET_ALL} deleted."
+        return f"{Fore.YELLOW}Note {note_id} deleted.{Style.RESET_ALL}"
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
-    
 
 '''Show Notes'''
 @input_error
@@ -652,6 +663,7 @@ def print_available_commands():
           
     Available commands for Addressbook:
       add <name> <phone>                - Add a new contact
+      delete-contact                    - Delete contact
       all                               - Show all contacts
       change <name> <old phone> <new phone>- Change existing contact's phone
       search                            - Show the phone number of a contact      
@@ -712,11 +724,16 @@ def handle_add_note_interactive(notebook):
     tags = [tag.strip() for tag in raw_tags.split(";") if tag.strip()] if raw_tags else []
     return add_note(text, tags, notebook)
 
+def handle_show_commands(args, book, notebook):
+    print_available_commands()
+    return ""
+
 # ========== СЛОВНИК КОМАНД ========== #
 COMMANDS = {
     "hello": lambda args, book, notebook: "How can I help you?",
     "add": lambda args, book, notebook: add_contact(args[0], args[1], book) if len(args) >= 2 else f"{Fore.RED}Usage: add <name> <phone>{Style.RESET_ALL}",
     "change": lambda args, book, notebook: change_contact(args, book),
+    "phone": lambda args, book, notebook: show_phone(args, book),
     "search": lambda args, book, notebook: show_phone(args, book),
     "all": lambda args, book, notebook: show_all(book),
     "add-birthday": lambda args, book, notebook: add_birthday(args, book),
@@ -729,6 +746,7 @@ COMMANDS = {
     "show-email": lambda args, book, notebook: show_email(args, book),
     "add-address": lambda args, book, notebook: add_address(args, book),
     "show-address": lambda args, book, notebook: show_address(args, book),
+    "delete-contact": lambda args, book, notebook: delete_contact(args, book),
     "add-note": lambda args, book, notebook: handle_add_note_interactive(notebook),
     "delete-note": lambda args, book, notebook: delete_note(args, notebook),
     "show-notes": lambda args, book, notebook: show_notes(notebook),
@@ -737,17 +755,19 @@ COMMANDS = {
     "edit-note": lambda args, book, notebook: edit_note_command(args, notebook),
     "add-tag": lambda args, book, notebook: add_tag_command(args, notebook),
     "delete-tag": lambda args, book, notebook: delete_tag_command(args, notebook),
-    "show": lambda args, book, notebook: print_available_commands() or ""
+    "sort-notes": lambda args, book, notebook: sort_notes(args, notebook),
+    "show": handle_show_commands
 }
 #---------------#
 '''Main'''
 def main():
-    '''Load AddressBook'''
     book = load_data("addressbook.pkl", AddressBook)
     notebook = load_data("notes.pkl", Notebook)
     print("Welcome to the assistant bot!")
     print_available_commands()
     autopaste = None
+
+    valide_comands = list(COMMANDS.keys()) + ["exit", "close"]
 
     while True:
         if autopaste:
