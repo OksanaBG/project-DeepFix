@@ -280,8 +280,7 @@ def input_error(func):
 
 '''Add Contact'''
 @input_error
-def add_contact(args, book):
-    name, phone, *_ = args
+def add_contact(name, phone, book):
     record = book.find(name)
     message = f"{Fore.BLUE}Contact updated.{Style.RESET_ALL}"
     if record is None:
@@ -638,10 +637,8 @@ valide_comands = [
 def corective_command(command, valide_comands, args):
     closest_matches = difflib.get_close_matches(command, valide_comands, n=2, cutoff=0.6)
     if closest_matches:
-        Match = ' '.join([closest_matches[0]] + args[:])
-        confirm = input(f"{Fore.YELLOW}Did you mean {Match} ? Y/N:{Style.RESET_ALL} ").strip().lower()
-        return Match if confirm.lower() == 'y' else None
-    return
+        return ' '.join([closest_matches[0]] + args[:])
+    return None
 
 
 #---------------#
@@ -748,7 +745,12 @@ def main():
                 print("How can I help you?")
 
             case "add":
-                print(add_contact(args, book))
+                if len(args) < 2:
+                    print(f"{Fore.RED}Usage: add <name> <phone>{Style.RESET_ALL}")
+                    continue
+                name = args[0]
+                phone = args[1]
+                print(add_contact(name, phone, book))
 
             case "change":
                 print(change_contact(args, book))
@@ -825,8 +827,17 @@ def main():
                 print(delete_tag_command(args, notebook))
 
             case _:
-                print(f"{Fore.RED}command not found.{Style.RESET_ALL}")
-                autopaste = corective_command(command, valide_comands, args)
+                suggestion = corective_command(command, valide_comands, args)
+                if suggestion:
+                    confirm = input(f"{Fore.YELLOW}Did you mean '{suggestion}'? Y/N: {Style.RESET_ALL}").strip().lower()
+                    if confirm == 'y':
+                        # 👉 перезапускаємо цикл з новою командою
+                        autopaste = suggestion
+                        continue
+                    else:
+                        print(f"{Fore.RED}Command not recognized.{Style.RESET_ALL}")
+                else:
+                    print(f"{Fore.RED}Command not recognized.{Style.RESET_ALL}")
 
 
 if __name__ == "__main__":
