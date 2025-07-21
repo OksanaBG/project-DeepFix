@@ -525,14 +525,24 @@ def delete_note(args, notebook):
 
 '''Show Notes'''
 @input_error
-def show_notes(notebook):
+def manual_wrap(text, width=40):
+    if not text:
+        return ""
+    return '\n'.join([text[i:i+width] for i in range(0, len(text), width)])
+
+def show_notes(notebook, wrap_width=40):
     if not notebook.data:
         return f"{Fore.RED}No notes found.{Style.RESET_ALL}"
+    
+    result = pd.DataFrame(columns=["ID", "Text", "Tags", "Created"])
 
-    result = []
     for note_id, note in notebook.get_all_notes():
-        result.append(f"{Fore.YELLOW}{note_id}{Style.RESET_ALL}: {note}")
-    return '\n'.join(result)
+        wrapped_text = manual_wrap(note.text, wrap_width)
+        tags = ', '.join(note.tags) if note.tags else "No tags"
+        created = note.created.strftime("%Y-%m-%d %H:%M") if note.created else "Unknown"
+        result.loc[len(result)] = [note_id, wrapped_text, tags, created]
+
+    return (Fore.GREEN + tabulate(result, headers="keys", tablefmt="grid", showindex=False, colalign=("center", "center", "center", "center")) + Style.RESET_ALL)
 
 
 '''Search by Tag Notes'''
