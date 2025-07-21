@@ -221,8 +221,8 @@ class Note:
             self.tags.remove(tag)
     
     def __str__(self):
-        tag_str = f" [tags: {', '.join(self.tags)}]" if self.tags else ""
-        return f"{self.text}{tag_str} (Created: {self.created.strftime('%Y-%m-%d %H:%M')})"
+        tag_str = f" [tags: {Fore.YELLOW}{', '.join(self.tags)}{Style.RESET_ALL}]" if self.tags else ""
+        return f"{self.text}{tag_str} (Created: {Fore.YELLOW}{self.created.strftime('%Y-%m-%d %H:%M')}{Style.RESET_ALL})"
     
 '''Клас Notebook- для зберігання та управління нотатками'''
 class Notebook(UserDict):
@@ -497,7 +497,7 @@ def show_address(args, book):
     name = args[0]
     record = book.find(name)
     if record and record.address:
-        return f"{name}'s address is {Fore.YELLOW, record.address, Style.RESET_ALL}"
+        return f"{name}'s address is {Fore.YELLOW}{record.address}{Style.RESET_ALL}"
     elif record:
         return f"{Fore.BLUE, name} has no address set.{Style.RESET_ALL}"
     else:
@@ -531,7 +531,7 @@ def show_notes(notebook):
 
     result = []
     for note_id, note in notebook.get_all_notes():
-        result.append(f"{note_id}: {note}")
+        result.append(f"{Fore.YELLOW}{note_id}{Style.RESET_ALL}: {note}")
     return '\n'.join(result)
 
 
@@ -576,7 +576,7 @@ def edit_note_command(args, notebook):
 
     if note_id in notebook.data:
         notebook.edit_note(note_id, new_text)
-        return f"Note {Fore.YELLOW, note_id, Style.RESET_ALL} updated."
+        return f"Note {Fore.YELLOW}{note_id}{Style.RESET_ALL} updated."
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
@@ -591,7 +591,7 @@ def add_tag_command(args, notebook):
 
     if note_id in notebook.data:
         notebook.data[note_id].add_tag(tag)
-        return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' added to note {Fore.YELLOW, note_id, Style.RESET_ALL}."
+        return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' added to note {Fore.YELLOW}{note_id}{Style.RESET_ALL}."
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
@@ -608,9 +608,9 @@ def delete_tag_command(args, notebook):
         note = notebook.data[note_id]
         if tag in note.tags:
             note.remove_tag(tag)
-            return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' removed from note {Fore.YELLOW, note_id, Style.RESET_ALL}."
+            return f"Tag '{Fore.YELLOW}{tag}{Style.RESET_ALL}' removed from note {Fore.YELLOW}{note_id}{Style.RESET_ALL}."
         else:
-            return f"{Fore.RED}Tag '{Fore.YELLOW, tag, Fore.RED}' not found in note {Fore.YELLOW, note_id, Fore.RED}.{Style.RESET_ALL}"
+            return f"{Fore.RED}Tag '{Fore.YELLOW}{tag}{Fore.RED}' not found in note {Fore.YELLOW}{note_id}{Fore.RED}.{Style.RESET_ALL}"
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
