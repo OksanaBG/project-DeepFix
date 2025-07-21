@@ -499,7 +499,7 @@ def show_address(args, book):
     if record and record.address:
         return f"{name}'s address is {Fore.YELLOW}{record.address}{Style.RESET_ALL}"
     elif record:
-        return f"{Fore.BLUE, name} has no address set.{Style.RESET_ALL}"
+        return f"{Fore.BLUE}{name} has no address set.{Style.RESET_ALL}"
     else:
         raise KeyError
     
