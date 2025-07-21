@@ -499,7 +499,7 @@ def show_address(args, book):
     if record and record.address:
         return f"{name}'s address is {Fore.YELLOW}{record.address}{Style.RESET_ALL}"
     elif record:
-        return f"{Fore.BLUE, name} has no address set.{Style.RESET_ALL}"
+        return f"{Fore.BLUE}{name} has no address set.{Style.RESET_ALL}"
     else:
         raise KeyError
     
@@ -545,7 +545,7 @@ def find_tag(args, notebook):
     results = notebook.find_by_tag(keyword)
 
     if not results:
-        return f"{Fore.RED}No notes found with tag containing '{Fore.YELLOW, keyword, Fore.RED}'.{Style.RESET_ALL}"
+        return f"{Fore.RED}No notes found with tag containing '{Fore.YELLOW}{keyword}{Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
 
@@ -560,7 +560,7 @@ def find_note(args, notebook):
     results = notebook.search_text(keyword)
 
     if not results:
-        return f"{Fore.RED}No notes found containing '{Fore.RED, keyword, Fore.RED}'.{Style.RESET_ALL}"
+        return f"{Fore.RED}No notes found containing '{Fore.RED}{keyword}{Fore.RED}'.{Style.RESET_ALL}"
 
     return '\n'.join([str(note) for note in results])
 
@@ -591,7 +591,7 @@ def add_tag_command(args, notebook):
 
     if note_id in notebook.data:
         notebook.data[note_id].add_tag(tag)
-        return f"Tag '{Fore.YELLOW, tag, Style.RESET_ALL}' added to note {Fore.YELLOW}{note_id}{Style.RESET_ALL}."
+        return f"Tag '{Fore.YELLOW}{tag}{Style.RESET_ALL}' added to note {Fore.YELLOW}{note_id}{Style.RESET_ALL}."
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
@@ -608,9 +608,9 @@ def delete_tag_command(args, notebook):
         note = notebook.data[note_id]
         if tag in note.tags:
             note.remove_tag(tag)
-            return f"Tag '{Fore.YELLOW}{tag}{Style.RESET_ALL}' removed from note {Fore.YELLOW}{note_id}{Style.RESET_ALL}."
+            return f"Tag '{Fore.YELLOW}{tag}{Style.RESET_ALL}' removed from note {Fore.YELLOW}{ note_id}{Style.RESET_ALL}."
         else:
-            return f"{Fore.RED}Tag '{Fore.YELLOW}{tag}{Fore.RED}' not found in note {Fore.YELLOW}{note_id}{Fore.RED}.{Style.RESET_ALL}"
+            return f"{Fore.RED}Tag '{Fore.YELLOW}{tag}{Fore.RED}' not found in note {Fore.YELLOW,}{note_id}{Fore.RED}.{Style.RESET_ALL}"
     else:
         return f"{Fore.RED}Note ID not found.{Style.RESET_ALL}"
     
