@@ -448,7 +448,7 @@ def show_email(args, book):
     if record and record.email:
         return f"{name}'s email is {record.email}"
     elif record:
-        return f"{Fore.BLUE, name} has no email set.{Style.RESET_ALL}"
+        return f"{Fore.BLUE}{name} has no email set.{Style.RESET_ALL}"
     else:
         raise KeyError
     
